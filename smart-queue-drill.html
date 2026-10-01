@@ -1,0 +1,767 @@
+<title>스마트 줄서기 10초 작전</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --paper: #E7EDEA;
+    --card: #FBFDFC;
+    --ink: #111A18;
+    --ink-2: #3B4C48;
+    --muted: #6A7B76;
+    --rule: #CBD8D3;
+    --jade: #0E6B55;
+    --jade-soft: #D9E8E2;
+    --amber: #B07C05;
+    --amber-soft: #F7ECCD;
+    --clay: #A8402A;
+    --clay-soft: #F6E3DE;
+    --shadow: 0 1px 2px rgba(17, 26, 24, .06), 0 8px 24px -16px rgba(17, 26, 24, .28);
+    --display: "Black Han Sans", "IBM Plex Sans KR", sans-serif;
+    --body: "IBM Plex Sans KR", -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Consolas", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0D1413;
+      --card: #161F1D;
+      --ink: #E6EEEB;
+      --ink-2: #B6C5C0;
+      --muted: #8A9B96;
+      --rule: #273430;
+      --jade: #4FBF9F;
+      --jade-soft: #142A24;
+      --amber: #E8B23C;
+      --amber-soft: #2D2313;
+      --clay: #E08B72;
+      --clay-soft: #30201B;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -16px rgba(0, 0, 0, .7);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0D1413;
+    --card: #161F1D;
+    --ink: #E6EEEB;
+    --ink-2: #B6C5C0;
+    --muted: #8A9B96;
+    --rule: #273430;
+    --jade: #4FBF9F;
+    --jade-soft: #142A24;
+    --amber: #E8B23C;
+    --amber-soft: #2D2313;
+    --clay: #E08B72;
+    --clay-soft: #30201B;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -16px rgba(0, 0, 0, .7);
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.62;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap {
+    max-width: 724px;
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 40px 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 44px;
+  }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--jade);
+  }
+
+  /* masthead */
+  .masthead { display: flex; flex-direction: column; gap: 14px; }
+  .masthead h1 {
+    font-family: var(--display);
+    font-size: clamp(38px, 11vw, 60px);
+    line-height: .98;
+    letter-spacing: -.01em;
+    font-weight: 400;
+  }
+  .masthead h1 em { font-style: normal; color: var(--amber); }
+  .lede { color: var(--ink-2); max-width: 60ch; }
+  .lede strong { color: var(--ink); font-weight: 600; }
+
+  .clock { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 6px; }
+  .field {
+    flex: 1 1 150px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 9px 12px 10px;
+  }
+  .field span {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .field input {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    background: none;
+    border: 0;
+    padding: 0;
+    width: 100%;
+    font-variant-numeric: tabular-nums;
+  }
+  .field input:focus { outline: none; }
+  .field:focus-within { border-color: var(--jade); box-shadow: 0 0 0 2px var(--jade-soft); }
+
+  /* stakes */
+  .stakes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 460px) { .stakes { grid-template-columns: 1fr; } }
+  .stake {
+    padding: 14px 16px 16px;
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .stake-win { background: var(--jade-soft); border-left: 3px solid var(--jade); }
+  .stake-lose { background: var(--clay-soft); border-left: 3px solid var(--clay); }
+  .stake b {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .stake-win b { color: var(--jade); }
+  .stake-lose b { color: var(--clay); }
+  .stake .big { font-family: var(--display); font-size: 26px; line-height: 1.15; font-weight: 400; }
+  .stake small { color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+
+  /* section heads */
+  .sec { display: flex; flex-direction: column; gap: 18px; }
+  .sec-head {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-top: 2px solid var(--ink);
+    padding-top: 12px;
+  }
+  .sec-head h2 { font-size: 21px; font-weight: 700; letter-spacing: -.01em; }
+  .sec-head p { color: var(--muted); font-size: 13.5px; }
+
+  /* timeline */
+  .phases { display: flex; flex-direction: column; }
+  .phase {
+    display: grid;
+    grid-template-columns: 78px 1fr;
+    gap: 16px;
+    padding: 20px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .phase:first-child { border-top: 0; padding-top: 4px; }
+  .tmark { display: flex; flex-direction: column; gap: 1px; }
+  .tmark .t {
+    font-family: var(--display);
+    font-size: 23px;
+    line-height: 1;
+    font-weight: 400;
+    color: var(--jade);
+    font-variant-numeric: tabular-nums;
+  }
+  .phase[data-live] .tmark .t { color: var(--amber); }
+  .tmark .when {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .06em;
+    color: var(--muted);
+  }
+  .phase-body { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .phase-body h3 { font-size: 16.5px; font-weight: 700; }
+  .phase-body h3 + p { color: var(--ink-2); font-size: 13.5px; margin-top: -8px; }
+
+  .checks { display: flex; flex-direction: column; }
+  .check {
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    gap: 11px;
+    align-items: start;
+    padding: 9px 12px;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    cursor: pointer;
+    line-height: 1.5;
+  }
+  .check:first-child { border-radius: 3px 3px 0 0; }
+  .check:last-child { border-radius: 0 0 3px 3px; }
+  .check + .check { border-top: 0; }
+  .check input {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    margin: 2px 0 0;
+    border: 1.5px solid var(--rule);
+    border-radius: 3px;
+    background: transparent;
+    display: grid;
+    place-content: center;
+    cursor: pointer;
+  }
+  .check input::after {
+    content: "";
+    width: 9px;
+    height: 5px;
+    border-left: 2px solid var(--card);
+    border-bottom: 2px solid var(--card);
+    transform: rotate(-45deg) translate(1px, -1px);
+    opacity: 0;
+  }
+  .check input:checked { background: var(--jade); border-color: var(--jade); }
+  .check input:checked::after { opacity: 1; }
+  .check input:focus-visible { outline: 2px solid var(--jade); outline-offset: 2px; }
+  .check input:checked ~ .ctext {
+    color: var(--muted);
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+  }
+  .ctext { font-size: 14px; }
+  .ctext i { font-style: normal; color: var(--muted); font-size: 12.5px; display: block; }
+
+  /* tap path */
+  .steps { display: flex; flex-direction: column; gap: 8px; }
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: center; }
+  .step-n {
+    font-family: var(--display);
+    font-size: 19px;
+    font-weight: 400;
+    color: var(--muted);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .step input {
+    width: 100%;
+    font-family: var(--body);
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 9px 12px;
+  }
+  .step input:focus { outline: none; border-color: var(--jade); box-shadow: 0 0 0 2px var(--jade-soft); }
+
+  /* drill */
+  .drill {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .drill-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 16px 18px 14px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .readout {
+    font-family: var(--mono);
+    font-size: clamp(40px, 13vw, 58px);
+    font-weight: 600;
+    line-height: .95;
+    letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .readout.hot { color: var(--amber); }
+  .readout.pass { color: var(--jade); }
+  .readout.slow { color: var(--clay); }
+  .readout sub { font-size: 16px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+  .best { text-align: right; }
+  .best span {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .best b {
+    font-family: var(--mono);
+    font-size: 19px;
+    font-variant-numeric: tabular-nums;
+    color: var(--jade);
+  }
+  .drill-pad { padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 8px; }
+  .tap {
+    width: 100%;
+    text-align: left;
+    font-family: var(--body);
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--muted);
+    background: transparent;
+    border: 1px dashed var(--rule);
+    border-radius: 3px;
+    padding: 12px 14px;
+    cursor: default;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    transition: background .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .tap .k { font-family: var(--mono); font-size: 11px; font-weight: 600; width: 1.3em; flex: none; }
+  .tap[data-state="next"] {
+    border-style: solid;
+    border-color: var(--amber);
+    background: var(--amber-soft);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .tap[data-state="done"] {
+    border-style: solid;
+    border-color: transparent;
+    background: var(--jade-soft);
+    color: var(--jade);
+  }
+  .tap:focus-visible { outline: 2px solid var(--jade); outline-offset: 2px; }
+  .drill-act { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding-top: 4px; }
+  .btn {
+    font-family: var(--body);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+  .btn-go { background: var(--ink); color: var(--paper); }
+  .btn-go:disabled { opacity: .5; cursor: default; }
+  .btn-ghost { background: transparent; color: var(--ink-2); border-color: var(--rule); }
+  .btn:focus-visible { outline: 2px solid var(--jade); outline-offset: 2px; }
+  .verdict { font-size: 13px; color: var(--ink-2); flex: 1 1 140px; }
+
+  /* roles */
+  .roles { display: flex; flex-direction: column; gap: 1px; background: var(--rule); }
+  .role { display: grid; grid-template-columns: 1fr 1.2fr; gap: 1px; }
+  .role input {
+    font-family: var(--body);
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--card);
+    border: 0;
+    padding: 11px 13px;
+    min-width: 0;
+  }
+  .role input:first-child { font-weight: 600; }
+  .role input::placeholder { color: var(--muted); font-weight: 400; }
+  .role input:focus { outline: none; background: var(--jade-soft); }
+  .roles-head {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 1px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 6px;
+  }
+
+  /* rules */
+  .rules { display: flex; flex-direction: column; gap: 10px; }
+  .rule-row {
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    gap: 14px;
+    align-items: baseline;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .rule-row:last-child { border-bottom: 0; padding-bottom: 0; }
+  .rule-if {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    color: var(--jade);
+  }
+  .rule-then { font-size: 14px; color: var(--ink); }
+  .rule-then em { font-style: normal; color: var(--muted); font-size: 13px; display: block; margin-top: 2px; }
+  @media (max-width: 440px) { .rule-row { grid-template-columns: 1fr; gap: 3px; } }
+
+  /* plan b */
+  .planb {
+    background: var(--clay-soft);
+    border-radius: 4px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .planb h2 { font-size: 17px; font-weight: 700; color: var(--clay); }
+  .planb ul { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: 6px; }
+  .planb li { font-size: 14px; color: var(--ink); }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 16px;
+    font-size: 12.5px;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  footer b { color: var(--ink-2); font-weight: 600; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">에버랜드 · 모바일 예약 작전 카드</p>
+    <h1>스마트 줄서기<br><em>10초</em> 작전</h1>
+    <p class="lede">이 예약은 실력이 아니라 <strong>준비</strong>로 갈립니다. 개장 순간에 할 일은 네 번 탭하는 것뿐이고, 그 네 번을 위한 세팅은 전날 밤에 끝나 있어야 합니다. 아래 순서대로 체크하고, 탭 경로는 손이 기억할 때까지 리허설하세요.</p>
+    <div class="clock">
+      <label class="field">
+        <span>방문 날짜</span>
+        <input type="date" id="visit-date">
+      </label>
+      <label class="field">
+        <span>개장 시각 · 당일 재확인</span>
+        <input type="time" id="open-time" value="10:00">
+      </label>
+    </div>
+  </header>
+
+  <div class="stakes">
+    <div class="stake stake-win">
+      <b>앱 예약 성공</b>
+      <span class="big">지정 시간에 복귀</span>
+      <small>그 사이 다른 어트랙션과 식당을 소화합니다. 하루 동선이 살아납니다.</small>
+    </div>
+    <div class="stake stake-lose">
+      <b>앱 예약 마감 후</b>
+      <span class="big">현장 대기 최대 3시간</span>
+      <small>오후에는 현장 줄서기만 남습니다. 사실상 하루의 절반입니다.</small>
+    </div>
+  </div>
+
+  <section class="sec">
+    <div class="sec-head">
+      <h2>개장 시각 기준 타임라인</h2>
+      <p>T는 개장 시각 기준입니다. 어느 항목도 당일 아침으로 미루지 마세요.</p>
+    </div>
+    <div class="phases">
+
+      <article class="phase">
+        <div class="tmark">
+          <span class="t">T&minus;12h</span>
+          <span class="when">전날 밤</span>
+        </div>
+        <div class="phase-body">
+          <h3>앱을 '예약 버튼 직전'까지 만들어 둔다</h3>
+          <p>당일 아침 정문 앞은 수천 명이 같은 기지국을 씁니다. 설치와 로그인을 그 자리에서 하면 이미 늦습니다.</p>
+          <div class="checks">
+            <label class="check"><input type="checkbox" data-k="n1"><span class="ctext">에버랜드 공식 앱 설치 및 최신 버전 업데이트</span></label>
+            <label class="check"><input type="checkbox" data-k="n2"><span class="ctext">로그인 완료 + 생체인증(지문·얼굴) 로그인 켜기<i>아침에 비밀번호를 타이핑하는 순간 20초가 날아갑니다</i></span></label>
+            <label class="check"><input type="checkbox" data-k="n3"><span class="ctext">일행 <b>전원</b>의 이용권을 앱에 등록<i>한 명이라도 빠지면 예약 인원에 넣을 수 없습니다</i></span></label>
+            <label class="check"><input type="checkbox" data-k="n4"><span class="ctext">앱 푸시 알림 허용 — 예약 확정과 탑승 호출 알림</span></label>
+            <label class="check"><input type="checkbox" data-k="n5"><span class="ctext">아래 '탭 경로' 네 칸을 실제 앱 화면을 보면서 실제 버튼 이름으로 고쳐 쓰기</span></label>
+            <label class="check"><input type="checkbox" data-k="n6"><span class="ctext">로스트밸리·사파리월드 당일 운영 일정 확인<i>우천과 시즌에 따라 운영 여부가 바뀔 수 있습니다</i></span></label>
+            <label class="check"><input type="checkbox" data-k="n7"><span class="ctext">휴대폰 100% 충전 + 보조배터리</span></label>
+            <label class="check"><input type="checkbox" data-k="n8"><span class="ctext">리허설 10초 이내 1회 통과</span></label>
+          </div>
+        </div>
+      </article>
+
+      <article class="phase">
+        <div class="tmark">
+          <span class="t">T&minus;20m</span>
+          <span class="when">게이트 대기줄</span>
+        </div>
+        <div class="phase-body">
+          <h3>화면을 열어 놓고 기다린다</h3>
+          <div class="checks">
+            <label class="check"><input type="checkbox" data-k="g1"><span class="ctext">앱을 실행해 스마트 줄서기 화면 직전까지 미리 이동<i>백그라운드로 두되 앱을 완전히 종료하지는 마세요</i></span></label>
+            <label class="check"><input type="checkbox" data-k="g2"><span class="ctext">와이파이를 끄고 셀룰러로 고정<i>혼잡한 공용 와이파이에 붙어 먹통이 되는 쪽이 더 흔합니다</i></span></label>
+            <label class="check"><input type="checkbox" data-k="g3"><span class="ctext">역할 최종 확인 — 누가 어느 어트랙션을 누르는지</span></label>
+            <label class="check"><input type="checkbox" data-k="g4"><span class="ctext">화면 자동 잠금 시간을 늘리거나 잠금 해제 상태 유지</span></label>
+          </div>
+        </div>
+      </article>
+
+      <article class="phase" data-live>
+        <div class="tmark">
+          <span class="t">T&plusmn;0</span>
+          <span class="when">입장 직후</span>
+        </div>
+        <div class="phase-body">
+          <h3>걸어가면서 네 번 탭한다</h3>
+          <p>어트랙션에 도착한 뒤에 예약하는 게 아닙니다. 게이트를 통과한 그 걸음에 예약을 끝내고, 그다음에 어디로 갈지 정합니다.</p>
+          <div class="steps" id="steps">
+            <div class="step"><span class="step-n">1</span><input type="text" id="s0" value="앱 실행 — 생체인증 로그인"></div>
+            <div class="step"><span class="step-n">2</span><input type="text" id="s1" value="하단 메뉴 → 스마트 줄서기"></div>
+            <div class="step"><span class="step-n">3</span><input type="text" id="s2" value="어트랙션 선택 → 로스트밸리"></div>
+            <div class="step"><span class="step-n">4</span><input type="text" id="s3" value="인원·회차 선택 → 예약 확정"></div>
+          </div>
+          <div class="checks">
+            <label class="check"><input type="checkbox" data-k="d1"><span class="ctext">예약 확정 화면 <b>스크린샷</b> 저장 후 일행 단톡에 공유<i>앱이 튕겨도 회차 시간은 남습니다</i></span></label>
+            <label class="check"><input type="checkbox" data-k="d2"><span class="ctext">예약에 성공하면 나머지 한 곳은 아침 현장 줄로 바로 이동</span></label>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head">
+      <h2>탭 경로 리허설</h2>
+      <p>시작을 누르고 위에 적은 순서대로 네 칸을 탭하세요. 목표는 10초입니다. 전날 밤에 세 번만 돌려보면 아침에 화면을 보지 않고도 손이 움직입니다.</p>
+    </div>
+    <div class="drill">
+      <div class="drill-top">
+        <div class="readout" id="readout">0.00<sub>초</sub></div>
+        <div class="best">
+          <span>최고 기록</span>
+          <b id="best">&mdash;</b>
+        </div>
+      </div>
+      <div class="drill-pad">
+        <button class="tap" type="button" data-i="0"><span class="k">1</span><span class="tl">앱 실행 — 생체인증 로그인</span></button>
+        <button class="tap" type="button" data-i="1"><span class="k">2</span><span class="tl">하단 메뉴 → 스마트 줄서기</span></button>
+        <button class="tap" type="button" data-i="2"><span class="k">3</span><span class="tl">어트랙션 선택 → 로스트밸리</span></button>
+        <button class="tap" type="button" data-i="3"><span class="k">4</span><span class="tl">인원·회차 선택 → 예약 확정</span></button>
+        <div class="drill-act">
+          <button class="btn btn-go" type="button" id="start">리허설 시작</button>
+          <button class="btn btn-ghost" type="button" id="reset">초기화</button>
+          <p class="verdict" id="verdict">시작을 누르면 측정이 시작됩니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head">
+      <h2>역할 배정</h2>
+      <p>혼자 두 곳을 연달아 누르면 둘 다 놓칩니다. 두 명이 동시에 서로 다른 어트랙션을 치면 최소 하나는 잡힙니다.</p>
+    </div>
+    <div>
+      <div class="roles-head"><span>이름</span><span>담당</span></div>
+      <div class="roles">
+        <div class="role"><input type="text" id="r0n" value="나" placeholder="이름"><input type="text" id="r0r" value="로스트밸리" placeholder="담당 어트랙션"></div>
+        <div class="role"><input type="text" id="r1n" value="" placeholder="일행 1"><input type="text" id="r1r" value="사파리월드" placeholder="담당 어트랙션"></div>
+        <div class="role"><input type="text" id="r2n" value="" placeholder="일행 2"><input type="text" id="r2r" value="백업 — 먼저 열리는 쪽" placeholder="담당"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head">
+      <h2>사파리월드냐 로스트밸리냐</h2>
+      <p>고민하는 데 쓰는 3초가 가장 비쌉니다. 아침에 판단하지 말고 규칙으로 처리하세요.</p>
+    </div>
+    <div class="rules">
+      <div class="rule-row">
+        <span class="rule-if">일행 2명+</span>
+        <span class="rule-then">나누세요. 한 명은 로스트밸리, 한 명은 사파리월드를 동시에.<em>둘 다 잡히면 회차 시간이 겹치는 쪽 하나를 취소</em></span>
+      </div>
+      <div class="rule-row">
+        <span class="rule-if">혼자</span>
+        <span class="rule-then">예약 화면에서 <b>남은 회차가 더 적은 쪽</b>을 먼저. 그게 더 빨리 마감되는 쪽입니다.<em>둘 다 여유로워 보이면 더 보고 싶은 쪽으로 — 이 경우엔 취향이 맞습니다</em></span>
+      </div>
+      <div class="rule-row">
+        <span class="rule-if">비 예보</span>
+        <span class="rule-then">사파리월드로 고정. 물 위를 지나는 로스트밸리가 날씨에 더 민감합니다.<em>전날 밤 운영 일정 확인 항목과 함께 판단</em></span>
+      </div>
+      <div class="rule-row">
+        <span class="rule-if">둘 다 마감</span>
+        <span class="rule-then">미련 두지 말고 아래 플랜 B로 즉시 전환. 새로고침 반복은 시간만 씁니다.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="planb">
+    <h2>플랜 B — 앱 예약을 놓쳤다면</h2>
+    <ul>
+      <li>즉시 현장 줄로 이동하세요. 오전에 선 줄이 오후에 선 줄보다 거의 항상 짧습니다.</li>
+      <li>식사 시간대(11:30&ndash;13:00)와 폐장 1&ndash;2시간 전에 대기가 짧아지는 경향이 있습니다. 둘 중 하나를 노리세요.</li>
+      <li>탑승 인원 전원이 함께 줄을 서야 하는 경우가 많습니다. '한 명만 대신 줄서기'는 계획에 넣지 마세요.</li>
+      <li>취소분으로 스마트 줄서기 회차가 중간에 풀리는 경우가 있으니, 줄 서 있는 동안 앱을 한 번씩 확인하세요.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>앱의 메뉴 이름과 화면 구성은 수시로 바뀝니다. 이 카드의 탭 경로 네 칸은 <b>전날 밤에 실제 앱을 보면서</b> 직접 고쳐 쓰는 것을 전제로 둔 칸입니다.</p>
+    <p>개장 시각과 어트랙션 운영 일정은 시즌과 날씨에 따라 달라집니다. 당일 아침 공식 앱에서 다시 확인하세요.</p>
+    <p>체크 상태와 기록, 역할은 이 기기의 브라우저에만 저장됩니다.</p>
+  </footer>
+
+</div>
+
+<script>
+  var KEY = "everland-drill-v1";
+  var state = { checks: {}, steps: null, roles: {}, best: null, date: "", open: "10:00" };
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return;
+      var p = JSON.parse(raw);
+      if (!p || typeof p !== "object") return;
+      state.checks = p.checks || {};
+      state.steps = Array.isArray(p.steps) ? p.steps : null;
+      state.roles = p.roles || {};
+      state.best = typeof p.best === "number" ? p.best : null;
+      state.date = p.date || "";
+      state.open = p.open || "10:00";
+    } catch (e) { /* 저장소를 쓸 수 없는 환경 — 기본값으로 동작 */ }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  load();
+
+  var dateEl = document.getElementById("visit-date");
+  var openEl = document.getElementById("open-time");
+  if (state.date) dateEl.value = state.date;
+  if (state.open) openEl.value = state.open;
+  dateEl.addEventListener("change", function () { state.date = dateEl.value; save(); });
+  openEl.addEventListener("change", function () { state.open = openEl.value; save(); });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".check input"), function (b) {
+    var k = b.getAttribute("data-k");
+    if (state.checks[k]) b.checked = true;
+    b.addEventListener("change", function () { state.checks[k] = b.checked; save(); });
+  });
+
+  var stepInputs = [0, 1, 2, 3].map(function (i) { return document.getElementById("s" + i); });
+  var tapBtns = Array.prototype.slice.call(document.querySelectorAll(".tap"));
+
+  function syncLabels() {
+    stepInputs.forEach(function (inp, i) {
+      tapBtns[i].querySelector(".tl").textContent = inp.value.trim() || "단계 " + (i + 1);
+    });
+  }
+  if (state.steps) {
+    stepInputs.forEach(function (inp, i) { if (state.steps[i]) inp.value = state.steps[i]; });
+  }
+  stepInputs.forEach(function (inp) {
+    inp.addEventListener("input", function () {
+      state.steps = stepInputs.map(function (x) { return x.value; });
+      syncLabels();
+      save();
+    });
+  });
+  syncLabels();
+
+  ["r0n", "r0r", "r1n", "r1r", "r2n", "r2r"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (typeof state.roles[id] === "string") el.value = state.roles[id];
+    el.addEventListener("input", function () { state.roles[id] = el.value; save(); });
+  });
+
+  var readout = document.getElementById("readout");
+  var bestEl = document.getElementById("best");
+  var verdict = document.getElementById("verdict");
+  var startBtn = document.getElementById("start");
+  var resetBtn = document.getElementById("reset");
+  var t0 = null, idx = 0, running = false, raf = null;
+
+  function fmt(s) { return s.toFixed(2); }
+  function paint(s, cls) {
+    readout.className = "readout" + (cls ? " " + cls : "");
+    readout.innerHTML = fmt(s) + "<sub>초</sub>";
+  }
+  function showBest() {
+    bestEl.textContent = state.best == null ? "—" : fmt(state.best) + "초";
+  }
+  function setStates() {
+    tapBtns.forEach(function (b, i) {
+      if (!running && idx === 0) { b.removeAttribute("data-state"); return; }
+      if (i < idx) b.setAttribute("data-state", "done");
+      else if (i === idx && running) b.setAttribute("data-state", "next");
+      else b.removeAttribute("data-state");
+    });
+  }
+  function tick() {
+    if (!running) return;
+    paint((performance.now() - t0) / 1000, "hot");
+    raf = requestAnimationFrame(tick);
+  }
+  function begin() {
+    running = true;
+    idx = 0;
+    t0 = performance.now();
+    startBtn.textContent = "진행 중…";
+    startBtn.disabled = true;
+    verdict.textContent = "1번 칸부터 순서대로 탭하세요.";
+    setStates();
+    tick();
+  }
+  function finish() {
+    var s = (performance.now() - t0) / 1000;
+    running = false;
+    cancelAnimationFrame(raf);
+    setStates();
+    startBtn.textContent = "다시 리허설";
+    startBtn.disabled = false;
+    var pass = s <= 10;
+    paint(s, pass ? "pass" : "slow");
+    if (state.best == null || s < state.best) { state.best = s; save(); showBest(); }
+    if (s <= 6) verdict.textContent = "충분합니다. 아침에 화면을 보지 않아도 손이 갑니다.";
+    else if (pass) verdict.textContent = "목표 통과. 한 번 더 돌려 10초 아래를 굳히세요.";
+    else if (s <= 20) verdict.textContent = "아직 화면을 찾고 있습니다. 메뉴 위치를 외우고 두 번 더.";
+    else verdict.textContent = "경로가 손에 붙지 않았습니다. 실제 앱에서 메뉴 위치부터 확인하세요.";
+  }
+  tapBtns.forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (!running) return;
+      var i = parseInt(b.getAttribute("data-i"), 10);
+      if (i !== idx) {
+        verdict.textContent = (idx + 1) + "번 칸이 먼저입니다.";
+        return;
+      }
+      idx++;
+      setStates();
+      if (idx >= tapBtns.length) finish();
+    });
+  });
+  startBtn.addEventListener("click", begin);
+  resetBtn.addEventListener("click", function () {
+    running = false;
+    cancelAnimationFrame(raf);
+    idx = 0;
+    setStates();
+    paint(0, "");
+    startBtn.textContent = "리허설 시작";
+    startBtn.disabled = false;
+    verdict.textContent = "시작을 누르면 측정이 시작됩니다.";
+  });
+
+  paint(0, "");
+  showBest();
+  setStates();
+</script>

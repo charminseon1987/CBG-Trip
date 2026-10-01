@@ -1,0 +1,328 @@
+<meta charset="utf-8">
+<title>에버랜드 10월 3일</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@300;400;500;700&family=Hahmlet:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+  :root {
+    --paper: #EDEBF3;
+    --card: #FCFBFE;
+    --ink: #171436;
+    --ink-2: #413C62;
+    --muted: #6B6480;
+    --rule: #D7D2E3;
+    --indigo: #3B3486;
+    --indigo-soft: #E2DEF4;
+    --gold: #8A6000;
+    --gold-soft: #F6ECD2;
+    --rose: #9E3351;
+    --rose-soft: #F7E2E7;
+    --green: #1D6B4E;
+    --green-soft: #DCEDE5;
+    --z-global: #55607A;
+    --z-zoo: #1D6B4E;
+    --z-euro: #3B3486;
+    --z-magic: #7E4080;
+    --z-amer: #9B5325;
+    --m-ground: #E4E1EC;
+    --m-green: #D8E3D6;
+    --m-water: #C6D9E7;
+    --m-path: #FBFAFE;
+    --m-build: #D3CDE0;
+    --m-ride: #BCB1CE;
+    --shadow: 0 1px 2px rgba(23, 20, 54, .06), 0 10px 28px -20px rgba(23, 20, 54, .4);
+    --display: "Hahmlet", "Gothic A1", serif;
+    --body: "Gothic A1", -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "Consolas", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #100E1C; --card: #1A1830; --ink: #E9E6F5; --ink-2: #BDB7D4; --muted: #8D86A6;
+      --rule: #2C2847; --indigo: #9A91E8; --indigo-soft: #221E45; --gold: #E0B64A; --gold-soft: #2B2314;
+      --rose: #E58AA0; --rose-soft: #311C24; --green: #5FC79B; --green-soft: #15291F;
+      --z-global: #9AA4BC; --z-zoo: #5FC79B; --z-euro: #9A91E8; --z-magic: #D08FD2; --z-amer: #E0A06B;
+      --m-ground: #141229; --m-green: #1A2922; --m-water: #142838; --m-path: #322D52;
+      --m-build: #231F40; --m-ride: #403860;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 28px -20px rgba(0, 0, 0, .9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #100E1C; --card: #1A1830; --ink: #E9E6F5; --ink-2: #BDB7D4; --muted: #8D86A6;
+    --rule: #2C2847; --indigo: #9A91E8; --indigo-soft: #221E45; --gold: #E0B64A; --gold-soft: #2B2314;
+    --rose: #E58AA0; --rose-soft: #311C24; --green: #5FC79B; --green-soft: #15291F;
+    --z-global: #9AA4BC; --z-zoo: #5FC79B; --z-euro: #9A91E8; --z-magic: #D08FD2; --z-amer: #E0A06B;
+    --m-ground: #141229; --m-green: #1A2922; --m-water: #142838; --m-path: #322D52;
+    --m-build: #231F40; --m-ride: #403860;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 28px -20px rgba(0, 0, 0, .9);
+  }
+
+  [hidden] { display: none !important; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.6; -webkit-text-size-adjust: 100%; }
+  .wrap { max-width: 780px; margin: 0 auto; padding-inline: 18px; padding-block: 26px 92px; display: flex; flex-direction: column; gap: 30px; }
+  h1, h2, h3 { margin: 0; text-wrap: balance; }
+  p { margin: 0; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  .kicker { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--indigo); }
+  .masthead h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 7vw, 40px); line-height: 1.05; letter-spacing: -.02em; margin-top: 8px; }
+  .masthead p { color: var(--ink-2); font-size: 14.5px; margin-top: 10px; max-width: 60ch; }
+
+  /* ---------- navigator ---------- */
+  .nav { position: sticky; top: 0; z-index: 30; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; box-shadow: var(--shadow); overflow: hidden; }
+  .nav-top { display: flex; align-items: center; gap: 10px; padding: 9px 13px; border-bottom: 1px solid var(--rule); background: var(--indigo-soft); }
+  .nav-top .clock { font-family: var(--mono); font-weight: 700; font-size: 14px; color: var(--indigo); font-variant-numeric: tabular-nums; }
+  .nav-top .state { font-size: 12.5px; color: var(--ink-2); flex: 1; min-width: 0; }
+  .nav-top .prog { font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+  .nav-body { padding: 13px; display: flex; flex-direction: column; gap: 10px; }
+  .nav-leg { display: flex; align-items: flex-start; gap: 12px; }
+  .nav-dir { width: 48px; height: 48px; flex: none; border-radius: 50%; background: var(--indigo); color: var(--card); display: grid; place-content: center; }
+  .nav-dir svg { display: block; }
+  .nav-where { min-width: 0; flex: 1; }
+  .nav-where .to { font-size: 17px; font-weight: 700; line-height: 1.25; }
+  .nav-where .meta { font-family: var(--mono); font-size: 12.5px; color: var(--muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .nav-where .meta b { color: var(--ink-2); }
+  .nav-note { font-size: 13px; color: var(--ink-2); background: var(--paper); border-radius: 4px; padding: 9px 11px; }
+  .nav-note.warn { background: var(--rose-soft); color: var(--rose); }
+  .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; border-left: 2px solid var(--rule); padding-left: 11px; }
+  .steps li { font-size: 12.5px; color: var(--muted); }
+  .steps li.now { color: var(--ink); font-weight: 700; }
+  .steps .sm { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .reroute { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12.5px; background: var(--green-soft); color: var(--green); border-radius: 4px; padding: 8px 11px; }
+  .nav-acts { display: flex; gap: 7px; flex-wrap: wrap; }
+  .btn { border: 1px solid var(--rule); background: var(--card); border-radius: 4px; padding: 8px 13px; font-size: 13.5px; font-weight: 700; }
+  .btn:hover { border-color: var(--indigo); }
+  .btn:focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; }
+  .btn.pri { background: var(--indigo); border-color: var(--indigo); color: var(--card); }
+  .btn.sm { padding: 4px 10px; font-size: 12px; font-weight: 400; }
+  .btn.ghost { background: transparent; }
+  .btn.out { border-color: var(--rose); color: var(--rose); }
+
+  /* ---------- map ---------- */
+  .mapcard { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 10px; }
+  .mapscroll { overflow-x: auto; }
+  .mapscroll svg { display: block; width: 100%; min-width: 760px; height: auto; border-radius: 4px; }
+  figure { margin: 0; display: flex; flex-direction: column; gap: 9px; }
+  figcaption { font-size: 12px; color: var(--muted); line-height: 1.55; }
+  figcaption a { color: var(--indigo); }
+  .svg-zone { font-family: var(--body); font-weight: 700; }
+  .svg-sub { font-family: var(--body); font-weight: 400; }
+  .svg-lbl { font-family: var(--mono); font-weight: 700; }
+  .svg-badge { font-family: var(--mono); font-weight: 700; }
+  @keyframes dash { to { stroke-dashoffset: -28; } }
+  .leg-live { stroke-dasharray: 10 8; animation: dash 1.1s linear infinite; }
+  @media (prefers-reduced-motion: reduce) { .leg-live { animation: none; } }
+
+  .sec { display: flex; flex-direction: column; gap: 14px; }
+  .sec-head { border-top: 2px solid var(--ink); padding-top: 10px; display: flex; flex-direction: column; gap: 3px; }
+  .sec-head h2 { font-family: var(--display); font-weight: 600; font-size: 19px; }
+  .sec-head p { font-size: 13px; color: var(--muted); }
+
+  .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; }
+  @media (max-width: 520px) { .facts { grid-template-columns: 1fr 1fr; } }
+  .fact { background: var(--card); padding: 9px 11px; display: flex; flex-direction: column; gap: 1px; }
+  .fact dt { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .fact dd { margin: 0; font-size: 15px; font-weight: 700; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  .suggest { background: var(--gold-soft); border-radius: 5px; padding: 10px 12px; font-size: 13px; }
+  .sg-in { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .sg-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ---------- itinerary ---------- */
+  .plan { display: flex; flex-direction: column; }
+  .walk { display: flex; align-items: center; gap: 8px; padding: 5px 0 5px 56px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+  .walk .bar { width: 2px; height: 15px; background: var(--rule); border-radius: 1px; }
+  .item { display: grid; grid-template-columns: 48px 1fr auto; gap: 11px; padding: 11px 10px; border-radius: 5px; align-items: start; }
+  .item.cur { background: var(--indigo-soft); }
+  .item.done { opacity: .45; }
+  .item .when { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+  .item .when .t { font-family: var(--mono); font-weight: 700; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+  .item.cur .when .t { color: var(--indigo); }
+  .item .when .n { font-family: var(--mono); font-size: 10.5px; color: var(--muted); border: 1px solid var(--rule); border-radius: 50%; width: 18px; height: 18px; display: grid; place-content: center; }
+  .item h3 { font-size: 15.5px; font-weight: 700; line-height: 1.3; }
+  .item .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+  .tag { font-family: var(--mono); font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 2px; color: var(--card); white-space: nowrap; }
+  .t-01 { background: var(--z-global); } .t-02 { background: var(--z-amer); } .t-03 { background: var(--z-magic); }
+  .t-05 { background: var(--z-euro); } .t-06 { background: var(--z-zoo); }
+  .tag.plain { background: transparent; color: var(--muted); border: 1px solid var(--rule); font-weight: 400; }
+  .tag.warnt { background: var(--rose-soft); color: var(--rose); }
+  .item .note { font-size: 13px; color: var(--ink-2); margin-top: 6px; }
+  .item .ctl { display: flex; gap: 4px; align-items: center; }
+  .icb { border: 1px solid var(--rule); background: var(--card); border-radius: 4px; width: 26px; height: 26px; display: grid; place-content: center; font-size: 12px; color: var(--muted); padding: 0; }
+  .icb:hover { border-color: var(--indigo); color: var(--indigo); }
+  .icb.del:hover { border-color: var(--rose); color: var(--rose); }
+
+  /* ---------- zone browser ---------- */
+  .zonewrap { display: grid; grid-template-columns: 162px 1fr; gap: 12px; align-items: start; }
+  @media (max-width: 580px) { .zonewrap { grid-template-columns: 1fr; } }
+  .zonelist { display: flex; flex-direction: column; gap: 5px; }
+  @media (max-width: 580px) { .zonelist { flex-direction: row; overflow-x: auto; padding-bottom: 4px; } }
+  .zbtn { display: flex; align-items: center; gap: 8px; text-align: left; width: 100%; background: var(--card); border: 1px solid var(--rule); border-radius: 5px; padding: 9px 10px; font-size: 13.5px; white-space: nowrap; }
+  .zbtn .sw { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+  .zbtn .cnt { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .zbtn[aria-pressed="true"] { border-color: var(--ink); background: var(--paper); font-weight: 700; }
+  .zoneitems { display: flex; flex-direction: column; gap: 7px; }
+  .zgroup { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+  .zrow { background: var(--card); border: 1px solid var(--rule); border-radius: 5px; padding: 9px 11px; display: grid; grid-template-columns: 1fr auto; gap: 8px 10px; align-items: center; }
+  .zrow.in { border-left: 3px solid var(--indigo); }
+  .zrow .nm { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 7px; }
+  .zrow .ord { font-family: var(--mono); font-size: 10.5px; color: var(--card); background: var(--indigo); border-radius: 50%; width: 18px; height: 18px; display: grid; place-content: center; flex: none; }
+  .zrow .meta { grid-column: 1 / -1; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .zrow .meta .hl { color: var(--rose); }
+
+  .opts { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; font-size: 13px; color: var(--ink-2); }
+  .opts label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .opts input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--indigo); }
+  .opts input[type="time"] { font-family: var(--mono); font-size: 13px; background: var(--card); color: var(--ink); border: 1px solid var(--rule); border-radius: 4px; padding: 4px 7px; }
+
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 430px; }
+  th, td { text-align: left; padding: 8px 11px; border-bottom: 1px solid var(--rule); }
+  th { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+  td.w { font-family: var(--mono); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .closing { background: var(--rose-soft); border-radius: 5px; padding: 15px 17px; display: flex; flex-direction: column; gap: 7px; }
+  .closing h2 { font-family: var(--display); font-size: 16px; font-weight: 600; color: var(--rose); }
+  .closing ul { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: 4px; }
+  .closing li { font-size: 13px; }
+  footer { border-top: 1px solid var(--rule); padding-top: 14px; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 5px; }
+  footer b { color: var(--ink-2); }
+
+  /* ---------- reroute sheet + toast ---------- */
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; padding: 12px; display: flex; justify-content: center; }
+  .sheet-in { width: min(740px, 100%); background: var(--card); border: 1px solid var(--rose); border-radius: 8px; box-shadow: var(--shadow); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .sheet-head { display: flex; align-items: center; gap: 9px; }
+  .sheet-head .rr { font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .1em; color: var(--card); background: var(--rose); border-radius: 2px; padding: 2px 7px; }
+  .sheet-title { font-size: 15px; font-weight: 700; }
+  .sheet-why { font-size: 13.5px; color: var(--ink-2); }
+  .difftable { display: flex; flex-direction: column; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+  .drow { display: grid; grid-template-columns: 90px 1fr auto; gap: 10px; background: var(--card); padding: 7px 11px; font-size: 13px; align-items: baseline; }
+  .drow .dk { color: var(--muted); font-size: 12px; }
+  .drow .dv { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .drow .dd { font-family: var(--mono); font-weight: 700; }
+  .drow .dd.up { color: var(--rose); }
+  .drow .dd.down { color: var(--green); }
+  .sheet-warn { background: var(--rose-soft); color: var(--rose); border-radius: 4px; padding: 9px 11px; font-size: 13px; }
+  .sheet-warn ul { margin: 4px 0 0; padding-left: 1.1em; }
+  .sheet-alt { font-size: 13px; color: var(--ink-2); background: var(--gold-soft); border-radius: 4px; padding: 8px 11px; }
+  .sheet-acts { display: flex; gap: 7px; flex-wrap: wrap; }
+  .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; z-index: 55; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; box-shadow: var(--shadow); padding: 10px 14px; font-size: 13px; max-width: calc(100% - 32px); }
+  .toast.good { border-color: var(--green); }
+  .toast.warn { border-color: var(--gold); }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="kicker">2026.10.03 토 · 개천절</p>
+    <h1>에버랜드 10월 3일</h1>
+    <p>중3~초5(키 140cm 이상) 기준 한 바퀴. 일정을 바꾸면 <b>바뀐 경로를 다시 계산해서 기존 경로와 비교</b>하고, 더 걷게 되면 진행할지 먼저 묻습니다.</p>
+  </header>
+
+  <section class="nav" id="nav" aria-live="polite">
+    <div class="nav-top">
+      <span class="clock" id="clock">--:--</span>
+      <span class="state" id="state">일정을 불러오는 중</span>
+      <span class="prog" id="prog"></span>
+    </div>
+    <div class="nav-body">
+      <div class="nav-leg">
+        <div class="nav-dir" id="dir" aria-hidden="true"></div>
+        <div class="nav-where">
+          <div class="to" id="to">—</div>
+          <div class="meta" id="meta"></div>
+        </div>
+      </div>
+      <ol class="steps" id="steps" hidden></ol>
+      <div class="nav-note" id="note"></div>
+      <div class="reroute" id="reroute" hidden></div>
+      <div class="nav-acts">
+        <button class="btn pri" id="arrive">여기 도착 · 다음으로</button>
+        <button class="btn" id="back">이전</button>
+        <button class="btn ghost" id="geo">내 위치 쓰기</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="mapcard">
+    <figure>
+      <div class="mapscroll">
+        <svg id="map" role="img" aria-labelledby="mapdesc"><title id="mapdesc">오픈스트리트맵 보행로 위에 그린 당일 동선</title></svg>
+      </div>
+      <figcaption>
+        <b>OpenStreetMap 보행로 위에 계산한 실제 경로입니다.</b> 굵게 흐르는 선이 지금 이동할 구간이고, 지나온 구간은 흐려집니다.
+        속이 빈 동그라미는 지금 고른 구역에서 <b>일정에 넣지 않은 곳</b>입니다. 적힌 거리는 직선거리가 아니라 길을 따라 걷는 거리입니다.
+        공식 지도 그림은 저작물이라 싣지 않았습니다 — 그림이 필요하면 <a href="https://www.everland.com/everland/map">everland.com/everland/map</a>을 같이 띄워 두세요.
+      </figcaption>
+    </figure>
+  </div>
+
+  <section class="sec">
+    <div class="sec-head">
+      <h2>오늘의 일정</h2>
+      <p>시각은 <b>체류시간 + 대기 + 실제 보행 거리</b>로 자동 계산됩니다. 하나를 빼면 뒤가 전부 당겨지고, 넣으면 밀립니다.</p>
+    </div>
+    <dl class="facts" id="facts"></dl>
+    <div class="suggest" id="suggest" hidden></div>
+    <div class="opts">
+      <label>출발 <input type="time" id="start" value="09:30"></label>
+      <label><input type="checkbox" id="sat"> 토요일 대기 ×1.5</label>
+      <button class="btn sm" id="reset">기본 일정으로 되돌리기</button>
+    </div>
+    <div class="plan" id="plan"></div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head">
+      <h2>구역별로 고르기</h2>
+      <p>왼쪽에서 구역을 고르면 그 구역의 어트랙션이 나옵니다. <b>일정에 들어간 것은 번호가 붙고</b>, 나머지는 넣을 수 있습니다.</p>
+    </div>
+    <div class="zonewrap">
+      <nav class="zonelist" id="zones" aria-label="구역"></nav>
+      <div class="zoneitems" id="zoneitems"></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head">
+      <h2>키에서 갈리는 것들</h2>
+      <p>140cm면 오늘 공원의 거의 전부가 열립니다. 아래가 경계선입니다.</p>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>어트랙션</th><th>키 제한</th><th>140cm</th><th>구역 · 운영</th></tr></thead>
+        <tbody>
+          <tr><td>와일드 사바나 · 판다월드 · 타이거밸리</td><td class="w">없음</td><td class="w">○</td><td>주토피아 · 17:00 / 17:30 마감</td></tr>
+          <tr><td>사파리월드 : 더 와일드</td><td class="w">100cm~</td><td class="w">○</td><td>주토피아 · 09:50–17:00</td></tr>
+          <tr><td>썬더폴스 · 매직 스윙 · 레이싱 코스터</td><td class="w">100cm~</td><td class="w">○</td><td>매직랜드 · 20:30 / 21:30 / 21:00</td></tr>
+          <tr><td>콜럼버스 대탐험 <span style="color:var(--muted)">바이킹</span></td><td class="w">110cm~</td><td class="w">○</td><td>아메리칸 · 10:00–21:00 · 대기 10분</td></tr>
+          <tr><td>아마존 익스프레스 · 슈팅고스트</td><td class="w">110cm~</td><td class="w">○</td><td>주토피아 / 유러피언</td></tr>
+          <tr><td>롤링 엑스 트레인 · 범퍼카</td><td class="w">120cm~</td><td class="w">○</td><td>아메리칸 / 매직랜드 · 21:30 / 21:00</td></tr>
+          <tr><td>허리케인</td><td class="w">130cm~</td><td class="w">○</td><td>아메리칸 · 14:50–21:30</td></tr>
+          <tr><td>모니모RUSH</td><td class="w">130–195cm</td><td class="w">○</td><td>유러피언 · 09:50–20:30 · 대기 80분</td></tr>
+          <tr><td>렛츠 트위스트</td><td class="w">140–195cm</td><td class="w">○ <span style="color:var(--muted)">경계</span></td><td>아메리칸 · 14:30–21:00</td></tr>
+          <tr><td>더블 락스핀</td><td class="w">140cm~</td><td class="w">○</td><td>아메리칸 · <b>14:00 종료</b></td></tr>
+          <tr><td>자동차 왕국 · 붕붕카 · 로보트카</td><td class="w">80–125cm</td><td class="w" style="color:var(--rose)">✕</td><td>매직랜드 · 키가 커서 불가</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="closing">
+    <h2>17시에 닫힙니다</h2>
+    <ul>
+      <li>로스트 밸리 · 와일드 사바나 · 사파리월드 · 프렌들리랜치 — <b>17:00</b> / 판다월드 · 타이거밸리 — <b>17:30</b></li>
+      <li>동물을 뒤로 미루면 그날 못 봅니다. 코스터는 21:00~21:30까지 도니 뒤로 미뤄도 됩니다 — 이 순서의 이유 전부입니다.</li>
+      <li>물에 젖는 건 아마존과 썬더폴스 둘. 해는 <b>18:20</b>에 지고 밤 기온은 8°C입니다.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p><b>데이터</b> — 운영시간 · 공연시간 · 탑승 키 제한은 에버랜드 공식 사이트의 10월 3일 운영정보에서, 대기시간은 10월 1일(목) 오후 실측값입니다. 지도의 보행로 · 건물 · 리프트는 OpenStreetMap 기여자들의 데이터(ODbL)이고, 모든 거리는 그 보행로 위에서 계산한 최단 경로입니다.</p>
+    <p><b>확인하지 못한 것</b> — 로스트밸리가 10월 1일 기준 공식 시설 목록에 없었습니다. 운휴 여부를 당일 앱에서 확인하세요. 운영시간은 현장에서 예고 없이 바뀝니다.</p>
+  </footer>
+</div>
+
+<div class="sheet" id="sheet" hidden></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="everland-data.js"></script>
+<script src="everland-app.js"></script>
