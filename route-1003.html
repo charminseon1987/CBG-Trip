@@ -1,34 +1,14 @@
 <meta charset="utf-8">
-<title>에버랜드 10월 3일</title>
+<title>가족 여행 기록</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@300;400;500;700&family=Hahmlet:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap">
 <style>
   :root {
-    --paper: #EDEBF3;
-    --card: #FCFBFE;
-    --ink: #171436;
-    --ink-2: #413C62;
-    --muted: #6B6480;
-    --rule: #D7D2E3;
-    --indigo: #3B3486;
-    --indigo-soft: #E2DEF4;
-    --gold: #8A6000;
-    --gold-soft: #F6ECD2;
-    --rose: #9E3351;
-    --rose-soft: #F7E2E7;
-    --green: #1D6B4E;
-    --green-soft: #DCEDE5;
-    --z-global: #55607A;
-    --z-zoo: #1D6B4E;
-    --z-euro: #3B3486;
-    --z-magic: #7E4080;
-    --z-amer: #9B5325;
-    --m-ground: #E4E1EC;
-    --m-green: #D8E3D6;
-    --m-water: #C6D9E7;
-    --m-path: #FBFAFE;
-    --m-build: #D3CDE0;
-    --m-ride: #BCB1CE;
+    --paper: #EDEBF3; --card: #FCFBFE; --ink: #171436; --ink-2: #413C62; --muted: #6B6480; --rule: #D7D2E3;
+    --indigo: #3B3486; --indigo-soft: #E2DEF4; --gold: #8A6000; --gold-soft: #F6ECD2;
+    --rose: #9E3351; --rose-soft: #F7E2E7; --green: #1D6B4E; --green-soft: #DCEDE5;
+    --z-global: #55607A; --z-zoo: #1D6B4E; --z-euro: #3B3486; --z-magic: #7E4080; --z-amer: #9B5325;
+    --m-ground: #E4E1EC; --m-green: #D8E3D6; --m-water: #C6D9E7; --m-path: #FBFAFE; --m-build: #D3CDE0; --m-ride: #BCB1CE;
     --shadow: 0 1px 2px rgba(23, 20, 54, .06), 0 10px 28px -20px rgba(23, 20, 54, .4);
     --display: "Hahmlet", "Gothic A1", serif;
     --body: "Gothic A1", -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif;
@@ -36,37 +16,89 @@
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --paper: #100E1C; --card: #1A1830; --ink: #E9E6F5; --ink-2: #BDB7D4; --muted: #8D86A6;
-      --rule: #2C2847; --indigo: #9A91E8; --indigo-soft: #221E45; --gold: #E0B64A; --gold-soft: #2B2314;
+      --paper: #100E1C; --card: #1A1830; --ink: #E9E6F5; --ink-2: #BDB7D4; --muted: #8D86A6; --rule: #2C2847;
+      --indigo: #9A91E8; --indigo-soft: #221E45; --gold: #E0B64A; --gold-soft: #2B2314;
       --rose: #E58AA0; --rose-soft: #311C24; --green: #5FC79B; --green-soft: #15291F;
       --z-global: #9AA4BC; --z-zoo: #5FC79B; --z-euro: #9A91E8; --z-magic: #D08FD2; --z-amer: #E0A06B;
-      --m-ground: #141229; --m-green: #1A2922; --m-water: #142838; --m-path: #322D52;
-      --m-build: #231F40; --m-ride: #403860;
+      --m-ground: #141229; --m-green: #1A2922; --m-water: #142838; --m-path: #322D52; --m-build: #231F40; --m-ride: #403860;
       --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 28px -20px rgba(0, 0, 0, .9);
     }
   }
   :root[data-theme="dark"] {
-    --paper: #100E1C; --card: #1A1830; --ink: #E9E6F5; --ink-2: #BDB7D4; --muted: #8D86A6;
-    --rule: #2C2847; --indigo: #9A91E8; --indigo-soft: #221E45; --gold: #E0B64A; --gold-soft: #2B2314;
+    --paper: #100E1C; --card: #1A1830; --ink: #E9E6F5; --ink-2: #BDB7D4; --muted: #8D86A6; --rule: #2C2847;
+    --indigo: #9A91E8; --indigo-soft: #221E45; --gold: #E0B64A; --gold-soft: #2B2314;
     --rose: #E58AA0; --rose-soft: #311C24; --green: #5FC79B; --green-soft: #15291F;
     --z-global: #9AA4BC; --z-zoo: #5FC79B; --z-euro: #9A91E8; --z-magic: #D08FD2; --z-amer: #E0A06B;
-    --m-ground: #141229; --m-green: #1A2922; --m-water: #142838; --m-path: #322D52;
-    --m-build: #231F40; --m-ride: #403860;
+    --m-ground: #141229; --m-green: #1A2922; --m-water: #142838; --m-path: #322D52; --m-build: #231F40; --m-ride: #403860;
     --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 28px -20px rgba(0, 0, 0, .9);
   }
 
   [hidden] { display: none !important; }
   body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.6; -webkit-text-size-adjust: 100%; }
-  .wrap { max-width: 780px; margin: 0 auto; padding-inline: 18px; padding-block: 26px 92px; display: flex; flex-direction: column; gap: 30px; }
+  .wrap { max-width: 780px; margin: 0 auto; padding-inline: 18px; padding-block: 22px 96px; display: flex; flex-direction: column; gap: 22px; }
   h1, h2, h3 { margin: 0; text-wrap: balance; }
   p { margin: 0; }
   button { font: inherit; color: inherit; cursor: pointer; }
+  img { max-width: 100%; }
+  .dim { color: var(--muted); font-size: 13px; }
+  .btn { border: 1px solid var(--rule); background: var(--card); border-radius: 4px; padding: 8px 13px; font-size: 13.5px; font-weight: 700; }
+  .btn:hover { border-color: var(--indigo); }
+  .btn:focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; }
+  .btn.pri { background: var(--indigo); border-color: var(--indigo); color: var(--card); }
+  .btn.sm { padding: 4px 10px; font-size: 12px; font-weight: 400; }
+  .btn.ghost { background: transparent; }
+  .btn.out { border-color: var(--rose); color: var(--rose); }
+  .btn[disabled] { opacity: .5; cursor: default; }
+  .icb { border: 1px solid var(--rule); background: var(--card); border-radius: 4px; width: 26px; height: 26px; display: grid; place-content: center; font-size: 12px; color: var(--muted); padding: 0; }
+  .icb:hover { border-color: var(--indigo); color: var(--indigo); }
+  .icb.del:hover { border-color: var(--rose); color: var(--rose); }
 
-  .kicker { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--indigo); }
-  .masthead h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 7vw, 40px); line-height: 1.05; letter-spacing: -.02em; margin-top: 8px; }
-  .masthead p { color: var(--ink-2); font-size: 14.5px; margin-top: 10px; max-width: 60ch; }
+  /* ---------- 여행 목록 ---------- */
+  .brand { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--indigo); }
+  .h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 6.5vw, 36px); line-height: 1.05; letter-spacing: -.02em; margin-top: 7px; }
+  .lede { color: var(--ink-2); font-size: 14px; margin-top: 9px; max-width: 58ch; }
+  .trips { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 560px) { .trips { grid-template-columns: 1fr; } }
+  .tcard { text-align: left; background: var(--card); border: 1px solid var(--rule); border-radius: 7px; padding: 14px 15px; display: flex; flex-direction: column; gap: 3px; }
+  .tcard:hover { border-color: var(--indigo); }
+  .tdate { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+  .ttitle { font-family: var(--display); font-size: 19px; font-weight: 600; }
+  .tplace { font-size: 13px; color: var(--ink-2); }
+  .tbadge { align-self: flex-start; margin-top: 6px; font-family: var(--mono); font-size: 10.5px; color: var(--indigo); background: var(--indigo-soft); border-radius: 2px; padding: 2px 7px; }
+  .tcard.add { align-items: center; justify-content: center; color: var(--muted); border-style: dashed; min-height: 96px; }
+  .tcard.add .plus { font-size: 22px; line-height: 1; }
+  .ntform { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .ntform input { font: inherit; font-size: 13.5px; background: var(--paper); color: var(--ink); border: 1px solid var(--rule); border-radius: 4px; padding: 7px 9px; }
+  .ntform input[type="text"] { flex: 1; min-width: 120px; }
 
-  /* ---------- navigator ---------- */
+  /* ---------- 여행 상세 머리 ---------- */
+  .thead { display: flex; align-items: center; gap: 11px; }
+  .thead .back { border: 1px solid var(--rule); background: var(--card); border-radius: 4px; width: 32px; height: 32px; display: grid; place-content: center; }
+  .thead h1 { font-family: var(--display); font-size: 23px; font-weight: 700; }
+  .thead .sub { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .tabs { display: flex; gap: 4px; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 4px; }
+  .tabs button { flex: 1; border: 0; background: transparent; border-radius: 4px; padding: 8px 6px; font-size: 13.5px; color: var(--muted); }
+  .tabs button[aria-selected="true"] { background: var(--indigo); color: var(--card); font-weight: 700; }
+
+  /* ---------- 총괄 에이전트 ---------- */
+  .chief { background: var(--card); border: 1px solid var(--rule); border-radius: 7px; overflow: hidden; }
+  .chief-head { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--rule); background: var(--indigo-soft); flex-wrap: wrap; }
+  .chief-head b { font-size: 13.5px; }
+  .abadge { font-family: var(--mono); font-size: 10.5px; color: var(--indigo); border: 1px solid var(--indigo); border-radius: 2px; padding: 1px 6px; margin-left: 4px; }
+  .chatcap { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+  .chatcap.on { color: var(--green); }
+  .chatlog { max-height: 260px; overflow-y: auto; padding: 11px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { font-size: 13.5px; border-radius: 6px; padding: 8px 11px; max-width: 86%; }
+  .msg.me { align-self: flex-end; background: var(--indigo); color: var(--card); }
+  .msg.bot { align-self: flex-start; background: var(--paper); }
+  .msg .tool { display: block; font-family: var(--mono); font-size: 10.5px; color: var(--indigo); margin-top: 4px; }
+  .msg .dump { font-family: var(--mono); font-size: 11px; background: var(--card); border: 1px solid var(--rule); border-radius: 4px; padding: 7px; overflow-x: auto; margin: 6px 0 0; white-space: pre-wrap; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 12px 10px; }
+  .chips button { border: 1px solid var(--rule); background: var(--paper); border-radius: 999px; padding: 4px 11px; font-size: 12px; color: var(--ink-2); }
+  .chatform { display: flex; gap: 7px; padding: 10px 12px; border-top: 1px solid var(--rule); }
+  .chatform input { flex: 1; font: inherit; font-size: 14px; background: var(--paper); color: var(--ink); border: 1px solid var(--rule); border-radius: 4px; padding: 8px 11px; }
+
+  /* ---------- 내비게이션 ---------- */
   .nav { position: sticky; top: 0; z-index: 30; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; box-shadow: var(--shadow); overflow: hidden; }
   .nav-top { display: flex; align-items: center; gap: 10px; padding: 9px 13px; border-bottom: 1px solid var(--rule); background: var(--indigo-soft); }
   .nav-top .clock { font-family: var(--mono); font-weight: 700; font-size: 14px; color: var(--indigo); font-variant-numeric: tabular-nums; }
@@ -82,21 +114,14 @@
   .nav-where .meta b { color: var(--ink-2); }
   .nav-note { font-size: 13px; color: var(--ink-2); background: var(--paper); border-radius: 4px; padding: 9px 11px; }
   .nav-note.warn { background: var(--rose-soft); color: var(--rose); }
-  .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; border-left: 2px solid var(--rule); padding-left: 11px; }
+  .steps { list-style: none; margin: 0; padding: 0 0 0 11px; display: flex; flex-direction: column; gap: 2px; border-left: 2px solid var(--rule); }
   .steps li { font-size: 12.5px; color: var(--muted); }
   .steps li.now { color: var(--ink); font-weight: 700; }
   .steps .sm { font-family: var(--mono); font-variant-numeric: tabular-nums; }
   .reroute { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12.5px; background: var(--green-soft); color: var(--green); border-radius: 4px; padding: 8px 11px; }
   .nav-acts { display: flex; gap: 7px; flex-wrap: wrap; }
-  .btn { border: 1px solid var(--rule); background: var(--card); border-radius: 4px; padding: 8px 13px; font-size: 13.5px; font-weight: 700; }
-  .btn:hover { border-color: var(--indigo); }
-  .btn:focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; }
-  .btn.pri { background: var(--indigo); border-color: var(--indigo); color: var(--card); }
-  .btn.sm { padding: 4px 10px; font-size: 12px; font-weight: 400; }
-  .btn.ghost { background: transparent; }
-  .btn.out { border-color: var(--rose); color: var(--rose); }
 
-  /* ---------- map ---------- */
+  /* ---------- 지도 ---------- */
   .mapcard { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 10px; }
   .mapscroll { overflow-x: auto; }
   .mapscroll svg { display: block; width: 100%; min-width: 760px; height: auto; border-radius: 4px; }
@@ -105,16 +130,16 @@
   figcaption a { color: var(--indigo); }
   .svg-zone { font-family: var(--body); font-weight: 700; }
   .svg-sub { font-family: var(--body); font-weight: 400; }
-  .svg-lbl { font-family: var(--mono); font-weight: 700; }
-  .svg-badge { font-family: var(--mono); font-weight: 700; }
+  .svg-lbl, .svg-badge { font-family: var(--mono); font-weight: 700; }
   @keyframes dash { to { stroke-dashoffset: -28; } }
   .leg-live { stroke-dasharray: 10 8; animation: dash 1.1s linear infinite; }
   @media (prefers-reduced-motion: reduce) { .leg-live { animation: none; } }
 
-  .sec { display: flex; flex-direction: column; gap: 14px; }
+  .sec { display: flex; flex-direction: column; gap: 13px; }
   .sec-head { border-top: 2px solid var(--ink); padding-top: 10px; display: flex; flex-direction: column; gap: 3px; }
-  .sec-head h2 { font-family: var(--display); font-weight: 600; font-size: 19px; }
+  .sec-head h2 { font-family: var(--display); font-weight: 600; font-size: 18px; }
   .sec-head p { font-size: 13px; color: var(--muted); }
+  .panel { display: flex; flex-direction: column; gap: 22px; }
 
   .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; }
   @media (max-width: 520px) { .facts { grid-template-columns: 1fr 1fr; } }
@@ -126,7 +151,6 @@
   .sg-in { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
   .sg-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 2px; }
 
-  /* ---------- itinerary ---------- */
   .plan { display: flex; flex-direction: column; }
   .walk { display: flex; align-items: center; gap: 8px; padding: 5px 0 5px 56px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
   .walk .bar { width: 2px; height: 15px; background: var(--rule); border-radius: 1px; }
@@ -146,11 +170,7 @@
   .tag.warnt { background: var(--rose-soft); color: var(--rose); }
   .item .note { font-size: 13px; color: var(--ink-2); margin-top: 6px; }
   .item .ctl { display: flex; gap: 4px; align-items: center; }
-  .icb { border: 1px solid var(--rule); background: var(--card); border-radius: 4px; width: 26px; height: 26px; display: grid; place-content: center; font-size: 12px; color: var(--muted); padding: 0; }
-  .icb:hover { border-color: var(--indigo); color: var(--indigo); }
-  .icb.del:hover { border-color: var(--rose); color: var(--rose); }
 
-  /* ---------- zone browser ---------- */
   .zonewrap { display: grid; grid-template-columns: 162px 1fr; gap: 12px; align-items: start; }
   @media (max-width: 580px) { .zonewrap { grid-template-columns: 1fr; } }
   .zonelist { display: flex; flex-direction: column; gap: 5px; }
@@ -171,7 +191,40 @@
   .opts { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; font-size: 13px; color: var(--ink-2); }
   .opts label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
   .opts input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--indigo); }
-  .opts input[type="time"] { font-family: var(--mono); font-size: 13px; background: var(--card); color: var(--ink); border: 1px solid var(--rule); border-radius: 4px; padding: 4px 7px; }
+  .opts input[type="time"], .opts input[type="number"] { font-family: var(--mono); font-size: 13px; background: var(--card); color: var(--ink); border: 1px solid var(--rule); border-radius: 4px; padding: 4px 7px; }
+
+  /* ---------- 앨범 ---------- */
+  .pgroup { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .pghead { font-size: 14px; font-weight: 700; display: flex; align-items: baseline; gap: 8px; border-bottom: 1px solid var(--rule); padding-bottom: 5px; }
+  .pgsub { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .ph { margin: 0; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+  .ph img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; cursor: zoom-in; background: var(--paper); }
+  .ph figcaption { display: flex; gap: 5px; padding: 6px; align-items: center; }
+  .ph .cap { flex: 1; min-width: 0; font: inherit; font-size: 12px; background: transparent; color: var(--ink); border: 0; border-bottom: 1px dashed var(--rule); padding: 2px 1px; }
+  .ph .cap:focus { outline: 0; border-bottom-color: var(--indigo); }
+  #lightbox { position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, .86); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 20px; cursor: zoom-out; }
+  #lightbox img { max-width: 100%; max-height: 82vh; border-radius: 6px; }
+  #lightbox .lbcap { color: #fff; font-size: 14px; }
+
+  /* ---------- 가계부 ---------- */
+  .ledform { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 11px; }
+  .ledform input, .ledform select { font: inherit; font-size: 13.5px; background: var(--paper); color: var(--ink); border: 1px solid var(--rule); border-radius: 4px; padding: 7px 9px; }
+  .ledform input[type="number"] { width: 110px; font-family: var(--mono); }
+  .ledform input[type="text"] { flex: 1; min-width: 110px; }
+  .ledtop { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .ledtot { font-family: var(--mono); font-size: 25px; font-weight: 700; letter-spacing: -.02em; }
+  .bars { display: flex; flex-direction: column; gap: 5px; }
+  .bar { display: grid; grid-template-columns: 96px 1fr 92px; gap: 9px; align-items: center; font-size: 12.5px; }
+  .bar .bl { color: var(--ink-2); }
+  .bar .bt { background: var(--paper); border-radius: 3px; height: 13px; overflow: hidden; }
+  .bar .bt span { display: block; height: 100%; border-radius: 3px; }
+  .bar .bv { font-family: var(--mono); font-size: 12px; text-align: right; color: var(--muted); }
+  .lrow { display: grid; grid-template-columns: 52px 86px 1fr auto 26px; gap: 9px; align-items: center; padding: 8px 2px; border-bottom: 1px solid var(--rule); font-size: 13px; }
+  @media (max-width: 520px) { .lrow { grid-template-columns: 50px 1fr auto 26px; } .lrow .lc { grid-row: 2; grid-column: 2 / 4; font-size: 11px; } }
+  .lrow .lt { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .lrow .lc { font-size: 12px; font-weight: 700; }
+  .lrow .la { font-family: var(--mono); font-weight: 700; }
 
   .tablewrap { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 430px; }
@@ -179,14 +232,13 @@
   th { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
   td.w { font-family: var(--mono); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-  .closing { background: var(--rose-soft); border-radius: 5px; padding: 15px 17px; display: flex; flex-direction: column; gap: 7px; }
-  .closing h2 { font-family: var(--display); font-size: 16px; font-weight: 600; color: var(--rose); }
+  .closing { background: var(--rose-soft); border-radius: 5px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .closing h2 { font-family: var(--display); font-size: 15.5px; font-weight: 600; color: var(--rose); }
   .closing ul { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: 4px; }
   .closing li { font-size: 13px; }
-  footer { border-top: 1px solid var(--rule); padding-top: 14px; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 5px; }
+  footer { border-top: 1px solid var(--rule); padding-top: 13px; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 5px; }
   footer b { color: var(--ink-2); }
 
-  /* ---------- reroute sheet + toast ---------- */
   .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; padding: 12px; display: flex; justify-content: center; }
   .sheet-in { width: min(740px, 100%); background: var(--card); border: 1px solid var(--rose); border-radius: 8px; box-shadow: var(--shadow); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
   .sheet-head { display: flex; align-items: center; gap: 9px; }
@@ -211,118 +263,187 @@
 
 <div class="wrap">
 
-  <header class="masthead">
-    <p class="kicker">2026.10.03 토 · 개천절</p>
-    <h1>에버랜드 10월 3일</h1>
-    <p>중3~초5(키 140cm 이상) 기준 한 바퀴. 일정을 바꾸면 <b>바뀐 경로를 다시 계산해서 기존 경로와 비교</b>하고, 더 걷게 되면 진행할지 먼저 묻습니다.</p>
-  </header>
+  <!-- ============ 여행 목록 ============ -->
+  <section id="screenList" class="sec">
+    <header>
+      <p class="brand">Family trip log</p>
+      <h1 class="h1">우리 여행 기록</h1>
+      <p class="lede">여행 하나를 열면 <b>일정 · 앨범 · 가계부</b> 세 탭이 나옵니다. 각 탭은 담당 에이전트가 맡고, 총괄 에이전트가 말로 받은 요청을 알맞은 쪽에 넘깁니다.</p>
+    </header>
+    <div class="trips" id="tripList"></div>
+    <form class="ntform" id="newTripForm" hidden>
+      <input type="text" id="ntTitle" placeholder="여행 이름" required>
+      <input type="date" id="ntDate">
+      <input type="text" id="ntPlace" placeholder="장소">
+      <button class="btn pri" type="submit">만들기</button>
+    </form>
+  </section>
 
-  <section class="nav" id="nav" aria-live="polite">
-    <div class="nav-top">
-      <span class="clock" id="clock">--:--</span>
-      <span class="state" id="state">일정을 불러오는 중</span>
-      <span class="prog" id="prog"></span>
-    </div>
-    <div class="nav-body">
-      <div class="nav-leg">
-        <div class="nav-dir" id="dir" aria-hidden="true"></div>
-        <div class="nav-where">
-          <div class="to" id="to">—</div>
-          <div class="meta" id="meta"></div>
+  <!-- ============ 여행 상세 ============ -->
+  <section id="screenTrip" hidden>
+    <div class="sec" style="gap:14px">
+      <div class="thead">
+        <button class="back" id="backToList" aria-label="목록으로">&#8592;</button>
+        <div>
+          <h1 id="tripTitle">에버랜드</h1>
+          <div class="sub" id="tripSub"></div>
         </div>
       </div>
-      <ol class="steps" id="steps" hidden></ol>
-      <div class="nav-note" id="note"></div>
-      <div class="reroute" id="reroute" hidden></div>
-      <div class="nav-acts">
-        <button class="btn pri" id="arrive">여기 도착 · 다음으로</button>
-        <button class="btn" id="back">이전</button>
-        <button class="btn ghost" id="geo">내 위치 쓰기</button>
+
+      <div class="chief">
+        <div class="chief-head">
+          <b>총괄 에이전트</b>
+          <span id="chatAgents"></span>
+          <span class="chatcap" id="chatCap">연결 중…</span>
+        </div>
+        <div class="chatlog" id="chatLog">
+          <div class="msg bot">무엇을 해드릴까요? 일정을 바꾸거나, 사진을 정리하거나, 오늘 쓴 돈을 물어보세요.</div>
+        </div>
+        <div class="chips" id="chatChips">
+          <button data-q="다음 어디로 가면 돼?">다음 어디로?</button>
+          <button data-q="오늘 쓴 돈 분류별로 알려줘">쓴 돈 정리</button>
+          <button data-q="사진 몇 장 있어?">사진 현황</button>
+          <button data-q="걷는 거리 줄여줘">동선 최적화</button>
+        </div>
+        <form class="chatform" id="chatForm">
+          <input id="chatIn" placeholder="예: 썬더폴스 빼줘 / 기념품 2만원 썼어" autocomplete="off">
+          <button class="btn pri" type="submit">보내기</button>
+        </form>
+      </div>
+
+      <div class="tabs" id="tabs" role="tablist">
+        <button data-tab="plan" role="tab" aria-selected="true">일정</button>
+        <button data-tab="album" role="tab" aria-selected="false">앨범 · 사진</button>
+        <button data-tab="ledger" role="tab" aria-selected="false">가계부</button>
       </div>
     </div>
-  </section>
 
-  <div class="mapcard">
-    <figure>
-      <div class="mapscroll">
-        <svg id="map" role="img" aria-labelledby="mapdesc"><title id="mapdesc">오픈스트리트맵 보행로 위에 그린 당일 동선</title></svg>
+    <!-- ---------- 일정 탭 ---------- -->
+    <div class="panel" id="tab-plan">
+      <p class="dim" id="planUnavailable" hidden>이 여행에는 경로 데이터가 없습니다. 앨범과 가계부는 그대로 쓸 수 있습니다.</p>
+      <div class="panel" id="planBody">
+        <section class="nav" id="nav" aria-live="polite">
+          <div class="nav-top">
+            <span class="clock" id="clock">--:--</span>
+            <span class="state" id="state">일정을 불러오는 중</span>
+            <span class="prog" id="prog"></span>
+          </div>
+          <div class="nav-body">
+            <div class="nav-leg">
+              <div class="nav-dir" id="dir" aria-hidden="true"></div>
+              <div class="nav-where">
+                <div class="to" id="to">—</div>
+                <div class="meta" id="meta"></div>
+              </div>
+            </div>
+            <ol class="steps" id="steps" hidden></ol>
+            <div class="nav-note" id="note"></div>
+            <div class="reroute" id="reroute" hidden></div>
+            <div class="nav-acts">
+              <button class="btn pri" id="arrive">여기 도착 · 다음으로</button>
+              <button class="btn" id="back">이전</button>
+              <button class="btn ghost" id="geo">내 위치 쓰기</button>
+            </div>
+          </div>
+        </section>
+
+        <div class="mapcard">
+          <figure>
+            <div class="mapscroll">
+              <svg id="map" role="img" aria-labelledby="mapdesc"><title id="mapdesc">오픈스트리트맵 보행로 위에 그린 당일 동선</title></svg>
+            </div>
+            <figcaption>
+              <b>OpenStreetMap 보행로 위에 계산한 실제 경로입니다.</b> 굵게 흐르는 선이 지금 이동할 구간, 속이 빈 동그라미는 고른 구역에서 일정에 넣지 않은 곳입니다.
+              공식 지도 그림은 저작물이라 싣지 않았습니다 — 필요하면 <a href="https://www.everland.com/everland/map">everland.com/everland/map</a>을 같이 띄워 두세요.
+            </figcaption>
+          </figure>
+        </div>
+
+        <section class="sec">
+          <div class="sec-head"><h2>오늘의 일정</h2><p>시각은 <b>체류시간 + 대기 + 실제 보행 거리</b>로 자동 계산됩니다.</p></div>
+          <dl class="facts" id="facts"></dl>
+          <div class="suggest" id="suggest" hidden></div>
+          <div class="opts">
+            <label>출발 <input type="time" id="start" value="09:30"></label>
+            <label><input type="checkbox" id="sat"> 토요일 대기 ×1.5</label>
+            <button class="btn sm" id="reset">기본 일정으로</button>
+          </div>
+          <div class="plan" id="plan"></div>
+        </section>
+
+        <section class="sec">
+          <div class="sec-head"><h2>구역별로 고르기</h2><p>구역을 고르면 그 구역 어트랙션이 <b>일정에 있음 / 없음</b>으로 나뉘어 나옵니다.</p></div>
+          <div class="zonewrap">
+            <nav class="zonelist" id="zones" aria-label="구역"></nav>
+            <div class="zoneitems" id="zoneitems"></div>
+          </div>
+        </section>
+
+        <section class="closing">
+          <h2>17시에 닫힙니다</h2>
+          <ul>
+            <li>로스트 밸리 · 와일드 사바나 · 사파리월드 — <b>17:00</b> / 판다월드 · 타이거밸리 — <b>17:30</b></li>
+            <li>물에 젖는 건 아마존과 썬더폴스 둘. 해는 <b>18:20</b>에 지고 밤 기온은 8°C입니다.</li>
+          </ul>
+        </section>
       </div>
-      <figcaption>
-        <b>OpenStreetMap 보행로 위에 계산한 실제 경로입니다.</b> 굵게 흐르는 선이 지금 이동할 구간이고, 지나온 구간은 흐려집니다.
-        속이 빈 동그라미는 지금 고른 구역에서 <b>일정에 넣지 않은 곳</b>입니다. 적힌 거리는 직선거리가 아니라 길을 따라 걷는 거리입니다.
-        공식 지도 그림은 저작물이라 싣지 않았습니다 — 그림이 필요하면 <a href="https://www.everland.com/everland/map">everland.com/everland/map</a>을 같이 띄워 두세요.
-      </figcaption>
-    </figure>
-  </div>
+    </div>
 
-  <section class="sec">
-    <div class="sec-head">
-      <h2>오늘의 일정</h2>
-      <p>시각은 <b>체류시간 + 대기 + 실제 보행 거리</b>로 자동 계산됩니다. 하나를 빼면 뒤가 전부 당겨지고, 넣으면 밀립니다.</p>
+    <!-- ---------- 앨범 탭 ---------- -->
+    <div class="panel" id="tab-album" hidden>
+      <section class="sec">
+        <div class="sec-head">
+          <h2>앨범 · 사진</h2>
+          <p>폰에서 그날 사진을 고르면 <b>찍힌 시각으로 일정 블록에 자동 분류</b>됩니다. 사진은 이 여행 기록에만 저장됩니다.</p>
+        </div>
+        <dl class="facts" id="albumHead"></dl>
+        <div class="opts">
+          <button class="btn pri" id="photoPick">사진 고르기</button>
+          <input type="file" id="photoFile" accept="image/*" multiple hidden>
+          <span class="dim">올리기 전에 1600px로 줄여 저장합니다.</span>
+        </div>
+        <div id="albumGrid"></div>
+      </section>
     </div>
-    <dl class="facts" id="facts"></dl>
-    <div class="suggest" id="suggest" hidden></div>
-    <div class="opts">
-      <label>출발 <input type="time" id="start" value="09:30"></label>
-      <label><input type="checkbox" id="sat"> 토요일 대기 ×1.5</label>
-      <button class="btn sm" id="reset">기본 일정으로 되돌리기</button>
-    </div>
-    <div class="plan" id="plan"></div>
-  </section>
 
-  <section class="sec">
-    <div class="sec-head">
-      <h2>구역별로 고르기</h2>
-      <p>왼쪽에서 구역을 고르면 그 구역의 어트랙션이 나옵니다. <b>일정에 들어간 것은 번호가 붙고</b>, 나머지는 넣을 수 있습니다.</p>
+    <!-- ---------- 가계부 탭 ---------- -->
+    <div class="panel" id="tab-ledger" hidden>
+      <section class="sec">
+        <div class="sec-head">
+          <h2>가계부</h2>
+          <p>금액과 분류를 넣으면 <b>그 시각에 있던 장소</b>가 함께 기록됩니다. 차량유지비 · 식비 · 기념품으로 나눠 집계합니다.</p>
+        </div>
+        <form class="ledform" id="ledForm">
+          <input type="number" id="ledAmt" placeholder="금액" min="0" step="100" required>
+          <select id="ledCat"></select>
+          <input type="text" id="ledMemo" placeholder="메모 (예: 주차비)">
+          <input type="time" id="ledTime">
+          <button class="btn pri" type="submit">기록</button>
+        </form>
+        <div class="opts">
+          <label>인원 <input type="number" id="ledPeople" value="4" min="1" max="20" style="width:64px"></label>
+        </div>
+        <div id="ledSum"></div>
+        <div id="ledList"></div>
+      </section>
     </div>
-    <div class="zonewrap">
-      <nav class="zonelist" id="zones" aria-label="구역"></nav>
-      <div class="zoneitems" id="zoneitems"></div>
-    </div>
-  </section>
-
-  <section class="sec">
-    <div class="sec-head">
-      <h2>키에서 갈리는 것들</h2>
-      <p>140cm면 오늘 공원의 거의 전부가 열립니다. 아래가 경계선입니다.</p>
-    </div>
-    <div class="tablewrap">
-      <table>
-        <thead><tr><th>어트랙션</th><th>키 제한</th><th>140cm</th><th>구역 · 운영</th></tr></thead>
-        <tbody>
-          <tr><td>와일드 사바나 · 판다월드 · 타이거밸리</td><td class="w">없음</td><td class="w">○</td><td>주토피아 · 17:00 / 17:30 마감</td></tr>
-          <tr><td>사파리월드 : 더 와일드</td><td class="w">100cm~</td><td class="w">○</td><td>주토피아 · 09:50–17:00</td></tr>
-          <tr><td>썬더폴스 · 매직 스윙 · 레이싱 코스터</td><td class="w">100cm~</td><td class="w">○</td><td>매직랜드 · 20:30 / 21:30 / 21:00</td></tr>
-          <tr><td>콜럼버스 대탐험 <span style="color:var(--muted)">바이킹</span></td><td class="w">110cm~</td><td class="w">○</td><td>아메리칸 · 10:00–21:00 · 대기 10분</td></tr>
-          <tr><td>아마존 익스프레스 · 슈팅고스트</td><td class="w">110cm~</td><td class="w">○</td><td>주토피아 / 유러피언</td></tr>
-          <tr><td>롤링 엑스 트레인 · 범퍼카</td><td class="w">120cm~</td><td class="w">○</td><td>아메리칸 / 매직랜드 · 21:30 / 21:00</td></tr>
-          <tr><td>허리케인</td><td class="w">130cm~</td><td class="w">○</td><td>아메리칸 · 14:50–21:30</td></tr>
-          <tr><td>모니모RUSH</td><td class="w">130–195cm</td><td class="w">○</td><td>유러피언 · 09:50–20:30 · 대기 80분</td></tr>
-          <tr><td>렛츠 트위스트</td><td class="w">140–195cm</td><td class="w">○ <span style="color:var(--muted)">경계</span></td><td>아메리칸 · 14:30–21:00</td></tr>
-          <tr><td>더블 락스핀</td><td class="w">140cm~</td><td class="w">○</td><td>아메리칸 · <b>14:00 종료</b></td></tr>
-          <tr><td>자동차 왕국 · 붕붕카 · 로보트카</td><td class="w">80–125cm</td><td class="w" style="color:var(--rose)">✕</td><td>매직랜드 · 키가 커서 불가</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <section class="closing">
-    <h2>17시에 닫힙니다</h2>
-    <ul>
-      <li>로스트 밸리 · 와일드 사바나 · 사파리월드 · 프렌들리랜치 — <b>17:00</b> / 판다월드 · 타이거밸리 — <b>17:30</b></li>
-      <li>동물을 뒤로 미루면 그날 못 봅니다. 코스터는 21:00~21:30까지 도니 뒤로 미뤄도 됩니다 — 이 순서의 이유 전부입니다.</li>
-      <li>물에 젖는 건 아마존과 썬더폴스 둘. 해는 <b>18:20</b>에 지고 밤 기온은 8°C입니다.</li>
-    </ul>
   </section>
 
   <footer>
-    <p><b>데이터</b> — 운영시간 · 공연시간 · 탑승 키 제한은 에버랜드 공식 사이트의 10월 3일 운영정보에서, 대기시간은 10월 1일(목) 오후 실측값입니다. 지도의 보행로 · 건물 · 리프트는 OpenStreetMap 기여자들의 데이터(ODbL)이고, 모든 거리는 그 보행로 위에서 계산한 최단 경로입니다.</p>
-    <p><b>확인하지 못한 것</b> — 로스트밸리가 10월 1일 기준 공식 시설 목록에 없었습니다. 운휴 여부를 당일 앱에서 확인하세요. 운영시간은 현장에서 예고 없이 바뀝니다.</p>
+    <p><b>데이터</b> — 운영시간 · 공연시간 · 탑승 키 제한은 에버랜드 공식 운영정보, 대기시간은 10월 1일(목) 실측값입니다. 지도의 보행로 · 건물 · 리프트는 OpenStreetMap 기여자들의 데이터(ODbL)이고, 모든 거리는 그 보행로 위 최단 경로입니다.</p>
+    <p><b>저장</b> — 일정 · 사진 · 지출은 이 아티팩트에 저장되어 로그인한 기기끼리 동기화됩니다. 로컬 파일로 열면 일정만 브라우저에 저장됩니다.</p>
   </footer>
 </div>
 
 <div class="sheet" id="sheet" hidden></div>
 <div class="toast" id="toast" hidden></div>
+<div id="lightbox" hidden></div>
 
 <script src="everland-data.js"></script>
-<script src="everland-app.js"></script>
+<script src="agent-core.js"></script>
+<script src="agent-plan.js"></script>
+<script src="agent-album.js"></script>
+<script src="agent-ledger.js"></script>
+<script src="agent-chief.js"></script>
+<script src="app-shell.js"></script>
+<script>window.Core.boot();</script>

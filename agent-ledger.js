@@ -27,6 +27,14 @@
 
   catEl.innerHTML = CATS.map(function (c) { return '<option value="' + c.id + '">' + c.name + "</option>"; }).join("");
 
+  /* db가 없으면 브라우저에 저장한다 */
+  function lkey() { return "everland-expenses-" + tripId; }
+  function loadLocal() {
+    try { rows = JSON.parse(localStorage.getItem(lkey()) || "[]"); } catch (e) { rows = []; }
+    rows.sort(function (a, b) { return (a.min || 0) - (b.min || 0); });
+  }
+  function saveLocal() { try { localStorage.setItem(lkey(), JSON.stringify(rows)); } catch (e) {} }
+
   function bind(id) {
     tripId = id; rows = [];
     if (unsub) { try { unsub(); } catch (e) {} unsub = null; }
@@ -37,24 +45,24 @@
         rows.sort(function (a, b) { return (a.min || 0) - (b.min || 0); });
         render();
       }, function () {});
-    }
+    } else loadLocal();
     render();
   }
 
   function placeOf(min) {
     if (window.PlanAgent && tripId === "everland-1003") {
       var w = window.PlanAgent.whereAt(min);
-      if (w) return C.shortName(w.row.p.name);
+      if (w) return w.row.p.name.split(" — ").pop().split(" : ")[0];
     }
     return "";
   }
 
   function add(amount, cat, memo, min) {
-    if (!col) { C.toast("지출을 저장하려면 claude.ai에서 열어야 합니다", "warn"); return { ok: false }; }
     var now = new Date();
     min = (min == null) ? now.getHours() * 60 + now.getMinutes() : min;
     var doc = { amount: Math.round(amount), cat: cat, memo: memo || "", min: min, place: placeOf(min), at: new Date().toISOString() };
-    col.doc(C.uid()).set(doc).catch(function () {});
+    if (col) col.doc(C.uid()).set(doc).catch(function () {});
+    else { doc._id = C.uid(); rows.push(doc); rows.sort(function (a, b) { return a.min - b.min; }); saveLocal(); render(); }
     return { ok: true, doc: doc };
   }
 
@@ -97,7 +105,10 @@
   });
   listEl.addEventListener("click", function (e) {
     var b = e.target.closest("button[data-del]");
-    if (b && col) col.doc(b.getAttribute("data-del")).delete().catch(function () {});
+    if (!b) return;
+    var id = b.getAttribute("data-del");
+    if (col) col.doc(id).delete().catch(function () {});
+    else { rows = rows.filter(function (r) { return r._id !== id; }); saveLocal(); render(); }
   });
   peopleEl.addEventListener("change", function (e) { people = Math.max(1, +e.target.value || 1); render(); });
 
@@ -144,7 +155,7 @@
         },
         execute: function (a) {
           var r = add(a.amount, a.category, a.memo, a.time ? C.toMin(a.time) : null);
-          return r.ok ? { ok: true, saved: r.doc } : { ok: false, message: "저장할 수 없습니다." };
+          return { ok: true, saved: r.doc };
         } },
       { name: "list", description: "지출 내역 전체.",
         execute: function () {
