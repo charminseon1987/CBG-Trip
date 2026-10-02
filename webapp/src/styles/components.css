@@ -1,0 +1,44 @@
+/* ============================================================
+   반복되는 UI 조각. Tailwind 로 매번 쓰기엔 긴 것만 여기 둔다.
+   ============================================================ */
+
+.chip {
+  display: inline-flex; align-items: center; gap: .3rem;
+  border-radius: 9999px; padding: .2rem .6rem;
+  font-size: .72rem; font-weight: 700; line-height: 1.5;
+  border: 1.5px solid currentColor;
+}
+.chip-solid { color: #fff; border-color: transparent; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .35rem;
+  border-radius: 9999px; padding: .4rem .9rem;
+  font-size: .82rem; font-weight: 700;
+  border: 1.5px solid var(--rule); background: #fff; color: var(--ink);
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+.btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 10px -4px rgba(46,36,51,.35); }
+.btn:disabled { opacity: .45; }
+.btn-primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.btn-ghost { border-color: transparent; background: transparent; color: var(--muted); }
+
+/* 일정 카드의 작은 조작 버튼 (▲ ▼ ✕) */
+.icb {
+  width: 1.4rem; height: 1.4rem; border-radius: .4rem;
+  display: grid; place-content: center;
+  font-size: .7rem; color: var(--muted);
+  border: 1px solid transparent;
+}
+.icb:hover:not(:disabled) { background: var(--brand); color: #fff; border-color: var(--brand); }
+.icb:disabled { opacity: .3; }
+
+/* 확인 창 — 바꾸기 전에 늘고 주는 것을 보여 준다 */
+.sheet {
+  position: fixed; left: 50%; bottom: 1.25rem; transform: translateX(-50%);
+  z-index: 60; width: min(32rem, calc(100vw - 2rem));
+  background: #fff; border: 2px solid var(--brand); border-radius: 1.1rem;
+  box-shadow: 0 18px 40px -16px rgba(46,36,51,.5);
+  padding: .9rem 1.1rem;
+}
+.sheet-good { border-color: var(--z-zoo); }
+.sheet-bad { border-color: var(--rose); }

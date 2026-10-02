@@ -1,46 +1,11 @@
 @import "tailwindcss";
 
-@theme {
-  --color-paper: #fff7fb;
-  --color-card: #ffffff;
-  --color-ink: #3a2f3f;
-  --color-ink-2: #6b5c70;
-  --color-muted: #8e8295;
-  --color-rule: #f0dbe6;
-  --color-brand: #e4568b;
-  --color-brand-soft: #fde7f0;
-
-  --color-z-global: #6fa8dc;
-  --color-z-zoo: #6fb23f;
-  --color-z-euro: #e4568b;
-  --color-z-magic: #9b8be8;
-  --color-z-amer: #e0923f;
-  --color-gold: #e8b93f;
-
-  --font-display: "Gothic A1", system-ui, sans-serif;
-}
-
-/* 지역팩 SVG 가 쓰는 변수 — 지도 바탕색 */
-:root {
-  --m-ground: #fdf6f9;
-  --m-green: #d4e8c2;
-  --m-water: #c7dced;     /* 경로 색과 섞이지 않게 채도를 낮춘다 */
-  --m-path: #cdb2c0;      /* 이면도로 — 전보다 진하게 */
-  --m-road: #a98c9c;      /* 간선도로 */
-  --m-build: #e8dae1;     /* 건물 — 정의가 없으면 검게 칠해진다 */
-  --m-ride: #d8c4d0;      /* 리프트·곤돌라 선 */
-  --card: #ffffff;
-  --muted: #8e8295;
-  --z-global: #6fa8dc;
-  --z-zoo: #6fb23f;
-  --z-euro: #e4568b;
-  --z-magic: #9b8be8;
-  --z-amer: #e0923f;
-  --gold: #e8b93f;
-  --indigo: #e4568b;
-  --rose: #d9607a;
-  --muted: #8e8295;
-}
+/* 색·글꼴 토큰 */
+@import "../styles/tokens.css";
+/* 지도 SVG 변수와 지도 전용 클래스 */
+@import "../styles/map.css";
+/* 반복되는 UI 조각 */
+@import "../styles/components.css";
 
 html, body { height: 100%; }
 body {

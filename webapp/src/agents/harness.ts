@@ -25,8 +25,9 @@ export interface AgentDef<T extends ToolSet = ToolSet> {
   name: string;
   /** 명부·UI 에 보일 한 줄 */
   blurb: string;
-  /** 프롬프트 본문 (src/agents/prompts/*.ts 에서 가져온다) */
-  prompt: string;
+  /** 프롬프트 본문. src/agents/prompts/<id>.md 를 읽는 함수다
+      (개발 중 .md 를 고치면 바로 반영되도록 문자열이 아니라 함수로 받는다) */
+  prompt: string | (() => string);
   tier: Tier;
   /** 이 에이전트가 손댈 수 있는 도구 — 다른 에이전트의 도구는 보이지 않는다 */
   tools: (ctx: AgentContext) => T | Promise<T>;
@@ -60,7 +61,8 @@ const GROUND_RULES = `
 - 사과하거나 자기소개하지 않는다. 결과만 말한다.`;
 
 function systemFor(agent: AgentDef, ctx: AgentContext): string {
-  return `${agent.prompt.trim()}\n${GROUND_RULES}\n\n맡은 여행 id: ${ctx.tripId}${promptSuffix()}`;
+  const body = typeof agent.prompt === "function" ? agent.prompt() : agent.prompt;
+  return `${body.trim()}\n${GROUND_RULES}\n\n맡은 여행 id: ${ctx.tripId}${promptSuffix()}`;
 }
 
 /** 로컬 모델은 느리다 — 도구를 부르는 횟수를 줄인다 */

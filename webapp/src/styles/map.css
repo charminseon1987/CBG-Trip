@@ -1,0 +1,49 @@
+/* ============================================================
+   지도 — 지역팩 SVG 가 쓰는 변수와 지도 전용 클래스.
+
+   주의: 지역팩 base SVG 안의 fill/stroke 는 var(--m-*) 를 참조한다.
+   여기 정의가 빠지면 그 도형이 검게 칠해진다. (실제로 당한 적 있음)
+   ============================================================ */
+
+:root {
+  --m-ground: #FFF8FB;     /* 바닥 */
+  --m-green: #CFE9B8;      /* 녹지 */
+  --m-water: #BCD9EF;      /* 물 — 경로선과 섞이지 않게 채도를 낮춰 둔다 */
+  --m-path: #D9B9CA;       /* 이면도로 · 보행로 */
+  --m-road: #A3808F;       /* 간선도로 */
+  --m-build: #EBD9E3;      /* 건물 */
+  --m-ride: #D6BECC;       /* 리프트 · 곤돌라 */
+}
+
+/* 경로선 — 흰 테두리를 깔아 어떤 바탕에서도 읽히게 한다 */
+.leg-casing { stroke: #fff; stroke-width: 7; opacity: .95; fill: none; }
+.leg-line { stroke-width: 3.6; fill: none; }
+.leg-line.is-current { stroke-width: 5.6; }
+
+/* 지금 가야 할 구간은 흐르게 표시한다 */
+.leg-flow {
+  stroke-dasharray: 10 14;
+  animation: legflow 1.1s linear infinite;
+}
+@keyframes legflow { to { stroke-dashoffset: -24; } }
+@media (prefers-reduced-motion: reduce) { .leg-flow { animation: none; } }
+
+/* 라벨 — 흰 외곽선으로 지도 위에서도 읽히게 */
+.map-label {
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 3.4;
+  stroke-linejoin: round;
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--ink);
+  pointer-events: none;
+}
+
+/* 핀 */
+.pin { cursor: pointer; }
+.pin:hover .pin-ring { stroke-width: 3.5; }
+.pin-ring { stroke: #fff; stroke-width: 2.5; }
+.pin-num { font-size: 10.5px; font-weight: 800; fill: #fff; pointer-events: none; }
+.pin-ghost { opacity: .9; }
+.pin-ghost:hover { opacity: 1; }

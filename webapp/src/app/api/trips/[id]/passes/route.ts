@@ -1,5 +1,6 @@
 import { fail, notFound, ok } from "@/lib/http";
 import { getPassData, quote, type Party } from "@/lib/passes";
+import { getParkDay } from "@/lib/parkday";
 import { store } from "@/lib/store";
 
 /** GET /api/trips/:id/passes?visits=4&season=B&adult=2&child=2&renew=0
@@ -21,8 +22,21 @@ export async function GET(
     return Number.isFinite(v) && v >= 0 ? Math.floor(v) : d;
   };
   const visits = Math.min(60, Math.max(1, n("visits", 1)));
-  const season = (q.get("season") ?? undefined) as "A" | "B" | "C" | "D" | undefined;
   const renew = q.get("renew") === "1";
+
+  /* 시즌을 안 줬으면 그 날짜의 실제 등급을 공식 API 에서 가져온다.
+     종일권 값이 시즌마다 크게 달라서(D 68,000 vs C 46,000) 추정으로 두면 추천이 틀어진다. */
+  let season = (q.get("season") ?? undefined) as "A" | "B" | "C" | "D" | undefined;
+  let seasonFrom = "지정값";
+  if (!season) {
+    const pd = await getParkDay(trip.date);
+    if (pd.seasonGrade && "ABCD".includes(pd.seasonGrade)) {
+      season = pd.seasonGrade as "A" | "B" | "C" | "D";
+      seasonFrom = `공식 운영정보 (${trip.date})`;
+    } else {
+      seasonFrom = "기본값 — 공식 등급을 받지 못했습니다";
+    }
+  }
 
   const given = { adult: n("adult"), child: n("child"), senior: n("senior"), baby: n("baby") };
   const party: Party = (given.adult || given.child || given.senior || given.baby)
@@ -35,6 +49,7 @@ export async function GET(
   const d = getPassData("everland")!;
   return ok({
     ...r,
+    seasonFrom,
     guessedParty: !(given.adult || given.child || given.senior || given.baby),
     disclaimer: `가격은 ${d.asOf} 기준으로 공개 정리 문서에서 옮긴 값입니다. 결제 전 공식 페이지에서 확인하세요.`,
   });

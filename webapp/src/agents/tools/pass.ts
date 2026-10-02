@@ -2,6 +2,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { getPassData, quote, type Party } from "@/lib/passes";
+import { getParkDay } from "@/lib/parkday";
 import { getRegion } from "@/lib/regions";
 import { store } from "@/lib/store";
 import type { AgentContext } from "../harness";
@@ -73,10 +74,21 @@ export function passTools({ tripId }: AgentContext) {
           return { error: "이 여행은 패스권 자료가 있는 공원이 아닙니다. 지금은 에버랜드만 있습니다." };
         }
         const p = await partyOf(tripId, party);
-        const q = quote(park, p, visits, season, renew);
+        /* 시즌을 안 줬으면 그 날짜의 실제 등급을 공식 API 에서 가져온다 (추정보다 낫다) */
+        let used = season;
+        let seasonFrom = "지정값";
+        if (!used && trip) {
+          const pd = await getParkDay(trip.date);
+          if (pd.seasonGrade && "ABCD".includes(pd.seasonGrade)) {
+            used = pd.seasonGrade as "A" | "B" | "C" | "D";
+            seasonFrom = `공식 운영정보 (${trip.date})`;
+          }
+        }
+        const q = quote(park, p, visits, used, renew);
         if (!q) return { error: "계산하지 못했습니다." };
         return {
           ...q,
+          season_from: seasonFrom,
           guessed_party: !party,
           caution:
             "가격은 공식 페이지에서 직접 가져오지 못했습니다. 반드시 verify_url 에서 확인하라고 사용자에게 알리세요.",

@@ -1,0 +1,49 @@
+/* ============================================================
+   색·글꼴 토큰 — 이 파일만 고치면 앱 전체 색감이 바뀐다.
+   아티팩트 판의 파스텔 팔레트를 기준으로, 지도와 뱃지에서 또렷하게
+   읽히도록 채도를 올린 vivid 값을 함께 둔다.
+   ============================================================ */
+
+@theme {
+  /* 바탕 · 글자 */
+  --color-paper: #fff5fa;
+  --color-card: #ffffff;
+  --color-ink: #2E2433;
+  --color-ink-2: #60506A;
+  --color-muted: #8A7C94;
+  --color-rule: #F3D9E6;
+
+  /* 주색 */
+  --color-brand: #E8357F;
+  --color-brand-soft: #FFE3EF;
+  --color-brand-deep: #C21F63;
+
+  /* 구역 색 (vivid) */
+  --color-z-global: #2F9BE8;
+  --color-z-zoo: #3FB62E;
+  --color-z-euro: #E8357F;
+  --color-z-magic: #8B5CF6;
+  --color-z-amer: #F5881F;
+  --color-z-show: #F2B705;
+  --color-rose: #E8456B;
+
+  --font-display: "Gothic A1", system-ui, sans-serif;
+}
+
+/* SVG·인라인 스타일에서 var() 로 쓰는 같은 값들 */
+:root {
+  --brand: #E8357F;
+  --ink: #2E2433;
+  --rule: #F3D9E6;
+  --muted: #8A7C94;
+
+  --z-global: #2F9BE8;
+  --z-zoo: #3FB62E;
+  --z-euro: #E8357F;
+  --z-magic: #8B5CF6;
+  --z-amer: #F5881F;
+  --gold: #F2B705;
+  --rose: #E8456B;
+  --indigo: #E8357F;      /* 아티팩트 판에서 쓰던 이름 — 지역팩 SVG 가 참조한다 */
+  --card: #ffffff;
+}

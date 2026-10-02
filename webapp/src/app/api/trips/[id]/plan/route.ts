@@ -18,7 +18,11 @@ export async function GET(_req: Request, { params }: Ctx) {
   const p = compute(pack, it.items, it.start, it.busy);
   return ok({
     mapped: true,
-    region: { key: pack.key, title: pack.title, mode: pack.mode, speed: pack.speed, source: pack.source },
+    region: {
+      key: pack.key, title: pack.title, mode: pack.mode, speed: pack.speed,
+      source: pack.source, vw: pack.vw, vh: pack.vh,
+      zones: pack.zones,               /* 구역 id·이름·색 — 지도에서 구역을 갈라 칠한다 */
+    },
     itinerary: it,
     summary: {
       stops: p.rows.length,
@@ -31,6 +35,7 @@ export async function GET(_req: Request, { params }: Ctx) {
       id: r.id,
       name: r.stop.name,
       zone: r.stop.zl,
+      zoneId: r.stop.zone,
       x: r.stop.x,
       y: r.stop.y,
       at: hm(r.at),
@@ -43,6 +48,9 @@ export async function GET(_req: Request, { params }: Ctx) {
     })),
     candidates: pack.pool
       .filter((s) => !it.items.includes(s.id))
-      .map((s) => ({ id: s.id, name: s.name, zone: s.zl, kind: s.kind, x: s.x, y: s.y, rank: s.rank ?? 1 })),
+      .map((s) => ({
+        id: s.id, name: s.name, zone: s.zl, zoneId: s.zone, kind: s.kind,
+        x: s.x, y: s.y, rank: s.rank ?? 1, note: s.note,
+      })),
   });
 }
