@@ -1,0 +1,24 @@
+# 의존성
+node_modules/
+
+# Next.js 빌드 산출물
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# 환경 변수 — 키가 들어 있다. 절대 커밋하지 않는다
+.env
+.env.*
+!.env.example
+
+# Claude Code 개인 설정 (권한 등). 공유용 settings.json 과 skills/ 는 커밋한다
+.claude/settings.local.json
+
+# 로그
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db

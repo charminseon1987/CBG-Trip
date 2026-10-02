@@ -83,7 +83,8 @@
       + '<div class="fact"><dt>캡션</dt><dd>' + photos.filter(function (p) { return p.caption; }).length + "개</dd></div>";
 
     if (!photos.length) {
-      gridEl.innerHTML = '<p class="dim">아직 사진이 없습니다. 폰에서 그날 찍은 사진을 고르면 <b>찍힌 시각으로 일정 블록에 자동 분류</b>됩니다.</p>';
+      gridEl.innerHTML = '<div class="empty"><img src="cat-stretch.jpg" alt="러그 위에 길게 누운 고양이" loading="lazy">'
+        + '<p>아직 사진이 없어요. 냥이처럼 늘어져 기다리는 중…<br>폰에서 그날 찍은 사진을 고르면 <b>찍힌 시각으로 일정 블록에 자동 분류</b>됩니다.</p></div>';
       return;
     }
     var groups = [], map = {};
@@ -141,6 +142,14 @@
   /* ---------- 에이전트 등록 ---------- */
   C.register({
     id: "album", name: "앨범",
+    persona: "너는 여행 사진을 맡은 기록 담당이다. 사진은 찍힌 시각으로 일정 블록에 자동 분류되어 있다. "
+      + "장수와 블록별 분포를 사실대로 말하고, 캡션이 비어 있으면 어느 시각 사진인지 짚어 준다. "
+      + "사진이 한 장도 없으면 올리는 방법을 한 문장으로 안내한다.",
+    fallback: function () {
+      var by = {};
+      photos.forEach(function (p) { var g = groupOf(p); by[g.label] = (by[g.label] || 0) + 1; });
+      return { total: photos.length, by_block: by, captioned: photos.filter(function (p) { return p.caption; }).length };
+    },
     api: { bind: bind, photos: function () { return photos; } },
     tools: [
       { name: "summary", description: "저장된 사진 수와 일정 블록별 장수.",

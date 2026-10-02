@@ -1,0 +1,106 @@
+{
+  "park": "everland",
+  "title": "에버랜드",
+  "currency": "KRW",
+  "asOf": "2026-10-02",
+  "verifyUrl": "https://www.everland.com/web/everland/ticket/ticket.html",
+  "reliability": "secondary",
+  "sourceNote": "에버랜드 공식 요금 페이지는 자바스크립트 앱이고 가격 API가 외부 요청에 500을 돌려주어 직접 수집하지 못했습니다. 아래 값은 공개 정리 문서에서 옮긴 것이며 반드시 공식 페이지에서 확인해야 합니다.",
+  "sources": [
+    { "label": "종일권 시즌별 요금 정리", "url": "https://triki.net/data/1581" },
+    { "label": "에버랜드 정기권 (2026-04-01 개정)", "url": "https://namu.wiki/w/%EC%97%90%EB%B2%84%EB%9E%9C%EB%93%9C/%EC%A0%95%EA%B8%B0%EA%B6%8C" }
+  ],
+
+  "ageBands": [
+    { "id": "adult", "name": "대인·청소년", "rule": "만 13세 이상" },
+    { "id": "child", "name": "소인", "rule": "만 36개월 이상 ~ 만 12세" },
+    { "id": "senior", "name": "경로", "rule": "만 65세 이상" },
+    { "id": "baby", "name": "베이비", "rule": "만 36개월 미만" }
+  ],
+
+  "dayTicket": {
+    "name": "종일권",
+    "note": "방문 날짜가 어느 시즌인지에 따라 가격이 달라집니다. 시즌 구분은 공식 달력에서 확인하세요.",
+    "seasons": [
+      { "id": "D", "name": "시즌 D (최성수기)", "adult": 68000, "child": 58000, "senior": 58000, "baby": 0 },
+      { "id": "A", "name": "시즌 A (성수기)", "adult": 62000, "child": 52000, "senior": 52000, "baby": 0 },
+      { "id": "B", "name": "시즌 B (준성수기)", "adult": 52000, "child": 42000, "senior": 42000, "baby": 0 },
+      { "id": "C", "name": "시즌 C (비수기)", "adult": 46000, "child": 36000, "senior": 36000, "baby": 0 }
+    ],
+    "defaultSeason": "B"
+  },
+
+  "passes": [
+    {
+      "id": "team",
+      "name": "팀 에버랜드 (365일)",
+      "days": 365,
+      "weekdayOnly": false,
+      "price": { "adult": 290000, "child": 230000 },
+      "renewPrice": { "adult": 240000, "child": 180000 },
+      "perks": ["얼리 파크인 — 일반 입장보다 1시간 일찍", "위픽 월간 혜택", "전용 카드·행사"],
+      "bestFor": "연 5회 이상 가고, 아침 줄을 피하고 싶은 가족"
+    },
+    {
+      "id": "standard350",
+      "name": "350 스탠다드",
+      "days": 350,
+      "weekdayOnly": false,
+      "price": { "adult": 240000, "child": 190000 },
+      "renewPrice": { "adult": 190000, "child": 140000 },
+      "perks": ["연 350일 이용", "정기권 할인·쿠폰"],
+      "bestFor": "연 4~5회 가는 가족. 지정 제외일만 피하면 된다"
+    },
+    {
+      "id": "select320",
+      "name": "320 셀렉트",
+      "days": 320,
+      "weekdayOnly": false,
+      "price": { "adult": 190000, "child": 150000 },
+      "perks": ["연 320일 이용"],
+      "bestFor": "연 4회쯤, 극성수기를 피해 갈 수 있는 경우"
+    },
+    {
+      "id": "weekday250",
+      "name": "250 위크데이",
+      "days": 250,
+      "weekdayOnly": true,
+      "price": { "adult": 140000, "child": 110000 },
+      "perks": ["평일만 이용"],
+      "bestFor": "평일에 갈 수 있는 경우 — 가장 싸다"
+    },
+    {
+      "id": "senior",
+      "name": "팀 에버랜드 시니어",
+      "days": 365,
+      "weekdayOnly": false,
+      "ageOnly": "senior",
+      "price": { "senior": 130000 },
+      "perks": ["만 60세 이상 전용"],
+      "bestFor": "어르신이 함께 자주 가는 경우"
+    },
+    {
+      "id": "baby",
+      "name": "팀 에버랜드 베이비",
+      "days": 365,
+      "weekdayOnly": false,
+      "ageOnly": "baby",
+      "price": { "baby": 90000 },
+      "perks": ["만 36개월 미만 전용"],
+      "bestFor": "영유아를 데리고 자주 오는 가족"
+    }
+  ],
+
+  "addons": [
+    {
+      "id": "planit",
+      "name": "플랜잇 (Plan-it · 큐패스)",
+      "kind": "별도 상품",
+      "note": "정기권과 별개로 사는 유료 상품입니다. 인기 놀이기구를 예약해 대기를 줄입니다. 날짜·시즌에 따라 가격이 달라지고 예약 단계에서 확정됩니다.",
+      "priceRange": { "offPeak": [20000, 49000], "peak": [50000, 90000] },
+      "unit": "1인 기준",
+      "variants": ["플랜잇3", "플랜잇5"],
+      "facilities": ["T익스프레스", "사파리월드", "로스트밸리", "썬더폴스", "아마존 익스프레스"]
+    }
+  ]
+}

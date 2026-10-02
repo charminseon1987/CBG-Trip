@@ -6,14 +6,31 @@
   var C = window.Core, D = C.D, POOL = C.pool, state = C.state;
   if (!D) { document.getElementById("state").textContent = "지도 데이터를 불러오지 못했습니다"; return; }
 
-  /* ---------------- 보행로 그래프 ---------------- */
-  var N = D.nodes, ADJ = [];
-  for (var i = 0; i < N.length; i++) ADJ.push([]);
-  D.edges.forEach(function (e) {
-    var a = e[0], b = e[1], w = Math.hypot(N[a][0] - N[b][0], N[a][1] - N[b][1]);
-    ADJ[a].push([b, w]); ADJ[b].push([a, w]);
-  });
-  var M_PER_PX = D.mPerPx, WALK = 70, cache = {};
+  /* ---------------- 길 그래프 (지역마다 다시 짓는다) ---------------- */
+  var N, ADJ, M_PER_PX, WALK, cache, ZONES, DRIVE, MOVE, RES, MINRUN;
+  function bindRegion(d) {
+    D = d;
+    N = D.nodes; ADJ = [];
+    for (var i = 0; i < N.length; i++) ADJ.push([]);
+    D.edges.forEach(function (e) {
+      var a = e[0], b = e[1], w = Math.hypot(N[a][0] - N[b][0], N[a][1] - N[b][1]);
+      ADJ[a].push([b, w]); ADJ[b].push([a, w]);
+    });
+    M_PER_PX = D.mPerPx;
+    WALK = D.speed || 70;                 /* m/분 — 걸어서 70, 차로 400 */
+    DRIVE = D.mode === "drive";
+    MOVE = DRIVE ? "이동" : "도보";
+    RES = DRIVE ? 130 : 18;               /* 길안내를 묶는 간격 */
+    MINRUN = DRIVE ? 320 : 25;
+    cache = {};
+    ZONES = D.zones || ZONES_EVERLAND;
+    if (typeof baseG !== "undefined" && baseG) {       /* 지도 바탕을 갈아 끼운다 */
+      svg.setAttribute("viewBox", "0 0 " + D.vw + " " + D.vh);
+      baseG.innerHTML = D.base;
+    }
+    var cr = document.getElementById("mapCredit");
+    if (cr && D.source) cr.textContent = D.source;
+  }
 
   function dijkstra(from, to) {
     var key = from + ":" + to;
@@ -46,10 +63,10 @@
   function legM(a, b) { return legBetween(a, b).m; }
 
   /* ---------------- 일정 계산 ---------------- */
-  var STAY = { gate: 20, animal: 30, ride: 10, wet: 12, food: 50, lift: 8, solo: 8, show: 0 };
+  var STAY = { gate: 20, exit: 0, animal: 30, ride: 10, wet: 12, food: 50, lift: 8, solo: 8, show: 0 };
   function stayOf(p, sat) {
     if (p.kind === "show") return C.toMin(C.hhmm(p.close)) - C.toMin(C.hhmm(p.open));
-    var base = STAY[p.kind] != null ? STAY[p.kind] : 15;
+    var base = p.stay != null ? p.stay : (STAY[p.kind] != null ? STAY[p.kind] : 15);
     return Math.round(base + (p.wait ? p.wait * (sat ? 1.5 : 1) : 0));
   }
   function compute(items, start, sat) {
@@ -87,7 +104,10 @@
   /* ---------------- 순서 최적화 ---------------- */
   function movable(items) {
     var idx = [];
-    for (var i = 1; i < items.length; i++) if (POOL[items[i]].kind !== "show") idx.push(i);
+    for (var i = 1; i < items.length; i++) {
+      var k = POOL[items[i]].kind;
+      if (k !== "show" && k !== "exit") idx.push(i);
+    }
     return idx;
   }
   function walkOf(items) {
@@ -117,8 +137,10 @@
   }
   function bestInsert(id, items) {
     items = items || state.items;
+    var last = items.length;
+    while (last > 1 && POOL[items[last - 1]].kind === "exit") last--;   /* 퇴장 앞까지만 */
     var best = null;
-    for (var i = 1; i <= items.length; i++) {
+    for (var i = 1; i <= last; i++) {
       var add = (i === items.length) ? legM(items[i - 1], id)
         : legM(items[i - 1], id) + legM(id, items[i]) - legM(items[i - 1], items[i]);
       if (best === null || add < best.add) best = { at: i, add: add };
@@ -162,7 +184,7 @@
     if (state.cursor >= items.length) state.cursor = items.length - 1;
     pending = null; renderSheet();
     C.save(); render();
-    if (d) C.toast("<b>" + C.esc(label) + "</b> · 거리 " + C.signed(d.dm, " m") + " · 걷는 시간 " + C.signed(d.dwalk, "분")
+    if (d) C.toast("<b>" + C.esc(label) + "</b> · 거리 " + C.signed(d.dm, " m") + " · " + MOVE + " 시간 " + C.signed(d.dwalk, "분")
       + (d.dend ? " · 끝나는 시각 " + C.signed(d.dend, "분") : "")
       + (d.fixedProblems.length ? " · 문제 " + d.fixedProblems.length + "건 해소" : ""), d.dm <= 0 ? "good" : "warn");
     C.emit("plan:changed", compute());
@@ -179,8 +201,8 @@
       + '<div class="sheet-head"><span class="rr">경로 재탐색</span><span class="sheet-title">' + C.esc(pending.label) + "</span></div>"
       + '<div class="sheet-why">바뀐 경로가 기존보다 <b>' + (d.newProblems.length ? "일정을 깨뜨립니다" : "비효율적입니다") + "</b>. 그대로 진행할까요?</div>"
       + '<div class="difftable">'
-      + diffRow("걷는 거리", Math.round(d.before.totalM) + " m", Math.round(d.after.totalM) + " m", C.signed(d.dm, " m"), d.dm > 0)
-      + diffRow("걷는 시간", d.before.walkMin + "분", d.after.walkMin + "분", C.signed(d.dwalk, "분"), d.dwalk > 0)
+      + diffRow(MOVE + " 거리", Math.round(d.before.totalM) + " m", Math.round(d.after.totalM) + " m", C.signed(d.dm, " m"), d.dm > 0)
+      + diffRow(MOVE + " 시간", d.before.walkMin + "분", d.after.walkMin + "분", C.signed(d.dwalk, "분"), d.dwalk > 0)
       + diffRow("끝나는 시각", C.hm(d.before.endAt), C.hm(d.after.endAt), d.dend ? C.signed(d.dend, "분") : "그대로", d.dend > 0)
       + "</div>"
       + (d.newProblems.length ? '<div class="sheet-warn"><b>새로 생기는 문제</b><ul>' + d.newProblems.map(function (x) { return "<li>" + C.esc(x) + "</li>"; }).join("") + "</ul></div>" : "")
@@ -206,7 +228,7 @@
   baseG.innerHTML = D.base; svg.appendChild(baseG);
   var liveG = document.createElementNS("http://www.w3.org/2000/svg", "g"); svg.appendChild(liveG);
 
-  var PHASE = ["var(--indigo)", "var(--gold)", "var(--rose)"];
+  var PHASE = ["var(--z-global)", "var(--z-amer)", "var(--indigo)"];
   function phaseOf(i, n) { return PHASE[i < n / 3 ? 0 : (i < (2 * n) / 3 ? 1 : 2)]; }
   var myPos = null;
   var CAND = [[20, 4, "start"], [-20, 4, "end"], [0, -20, "middle"], [0, 27, "middle"],
@@ -240,7 +262,7 @@
       var p = r.p, col = phaseOf(i, n), op = i < state.cursor ? ".4" : "1";
       if (i === state.cursor) g += '<circle cx="' + p.x + '" cy="' + p.y + '" r="20" fill="none" stroke="' + col + '" stroke-width="2" opacity=".5"></circle>';
       g += '<circle cx="' + p.x + '" cy="' + p.y + '" r="12.5" fill="' + col + '" stroke="var(--card)" stroke-width="2.5" opacity="' + op + '"></circle>';
-      g += '<text class="svg-badge" x="' + p.x + '" y="' + (p.y + 4) + '" text-anchor="middle" font-size="11.5" fill="var(--card)" opacity="' + op + '">' + (i + 1) + "</text>";
+      g += '<text class="svg-badge" x="' + p.x + '" y="' + (p.y + 4) + '" text-anchor="middle" font-size="12.5" fill="var(--card)" opacity="' + op + '">' + (i + 1) + "</text>";
       var label = C.shortName(p.name), w = 48 + label.length * 13, pick = null;
       var order = p.x > D.vw * 0.6 ? CAND.slice().sort(function (a, b) { return (a[2] === "end" ? 0 : 1) - (b[2] === "end" ? 0 : 1); }) : CAND;
       for (var c = 0; c < order.length && !pick; c++) {
@@ -251,7 +273,7 @@
       }
       if (!pick) return;
       taken.push(pick.box);
-      g += '<text x="' + (p.x + pick.dx) + '" y="' + (p.y + pick.dy) + '" text-anchor="' + pick.anc + '" font-size="12.5" paint-order="stroke" stroke="var(--card)" stroke-width="4.5" stroke-linejoin="round" opacity="' + op + '">'
+      g += '<text x="' + (p.x + pick.dx) + '" y="' + (p.y + pick.dy) + '" text-anchor="' + pick.anc + '" font-size="13.5" paint-order="stroke" stroke="var(--card)" stroke-width="4.5" stroke-linejoin="round" opacity="' + op + '">'
          + '<tspan class="svg-lbl" fill="' + col + '">' + C.hm(r.at) + "</tspan>"
          + '<tspan class="svg-sub" fill="currentColor" dx="5">' + C.esc(label) + "</tspan></text>";
     });
@@ -270,7 +292,7 @@
     var keep = [pts[0]], acc = 0;
     for (var i = 1; i < pts.length; i++) {
       acc += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]) * M_PER_PX;
-      if (acc >= 18 || i === pts.length - 1) { keep.push(pts[i]); acc = 0; }
+      if (acc >= RES || i === pts.length - 1) { keep.push(pts[i]); acc = 0; }
     }
     var out = [], run = 0;
     for (var k = 1; k < keep.length; k++) {
@@ -279,7 +301,7 @@
       var b1 = bearing(keep[k - 1][0], keep[k - 1][1], keep[k][0], keep[k][1]);
       var b2 = bearing(keep[k][0], keep[k][1], keep[k + 1][0], keep[k + 1][1]);
       var dA = ((b2 - b1 + 540) % 360) - 180;
-      if (Math.abs(dA) >= 32 && run >= 25) {
+      if (Math.abs(dA) >= 32 && run >= MINRUN) {
         out.push({ m: run, turn: dA > 0 ? (dA > 95 ? "sharp-right" : "right") : (dA < -95 ? "sharp-left" : "left") });
         run = 0;
       }
@@ -309,7 +331,7 @@
   }
 
   /* ---------------- 구역 ---------------- */
-  var ZONES = [
+  var ZONES_EVERLAND = [
     { id: "06", name: "주토피아", color: "var(--z-zoo)" },
     { id: "05", name: "유러피언", color: "var(--z-euro)" },
     { id: "03", name: "매직랜드", color: "var(--z-magic)" },
@@ -317,6 +339,7 @@
     { id: "01", name: "글로벌페어", color: "var(--z-global)" },
     { id: "show", name: "공연", color: "var(--gold)" }
   ];
+  bindRegion(D);
   function zoneColor(id) { for (var i = 0; i < ZONES.length; i++) if (ZONES[i].id === id) return ZONES[i].color; return "var(--muted)"; }
   function zoneMembers(id) {
     return D.pool.filter(function (p) { return id === "show" ? p.kind === "show" : (p.zone === id && p.kind !== "show"); });
@@ -359,8 +382,8 @@
   function render() {
     var plan = compute();
     if (state.cursor > plan.rows.length - 1) state.cursor = plan.rows.length - 1;
-    factsEl.innerHTML = fact("일정", plan.rows.length + "개") + fact("걷는 거리", (plan.totalM / 1000).toFixed(1) + " km")
-      + fact("걷는 시간", plan.walkMin + "분") + fact("끝나는 시각", C.hm(plan.endAt));
+    factsEl.innerHTML = fact("일정", plan.rows.length + "개") + fact(MOVE + " 거리", (plan.totalM / 1000).toFixed(1) + " km")
+      + fact(MOVE + " 시간", plan.walkMin + "분") + fact("끝나는 시각", C.hm(plan.endAt));
 
     var opt = optimize(state.items);
     if (opt.m < plan.totalM - 150) {
@@ -373,9 +396,12 @@
 
     var h = "";
     plan.rows.forEach(function (r, i) {
-      if (r.leg) h += '<div class="walk"><span class="bar"></span>도보 ' + Math.round(r.leg.m) + " m · " + Math.ceil(r.leg.m / WALK) + "분</div>";
+      if (r.leg) h += '<div class="walk">' + C.paw({ size: 15, fur: "var(--indigo)" })
+        + '<span class="wm">' + MOVE + " " + (r.leg.m >= 1000 ? (r.leg.m / 1000).toFixed(1) + " km" : Math.round(r.leg.m) + " m")
+        + " · " + Math.ceil(r.leg.m / WALK) + "분</span></div>";
       var p = r.p;
-      h += '<div class="item' + (i === state.cursor ? " cur" : "") + (i < state.cursor ? " done" : "") + '" data-i="' + i + '">'
+      h += '<div class="item' + (i === state.cursor ? " cur" : "") + (i < state.cursor ? " done" : "")
+        + '" data-i="' + i + '" data-zone="' + p.zone + '">'
         + '<div class="when"><span class="t">' + C.hm(r.at) + '</span><span class="n">' + (i + 1) + "</span></div>"
         + "<div><h3>" + C.esc(p.name) + '</h3><div class="tags">'
         + '<span class="tag t-' + p.zone + '">' + C.esc(p.zl) + "</span>"
@@ -405,19 +431,30 @@
     var now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
     document.getElementById("clock").textContent = C.hm(nowMin);
     document.getElementById("prog").textContent = (i + 1) + " / " + rows.length;
-    var isDay = now.getFullYear() === 2026 && now.getMonth() === 9 && now.getDate() === 3;
+    var t = window.Shell && window.Shell.current ? window.Shell.current() : null;
+    var day = (t && t.date) || "2026-10-03";
+    var today = now.getFullYear() + "-" + ("0" + (now.getMonth() + 1)).slice(-2) + "-" + ("0" + now.getDate()).slice(-2);
+    var isDay = day === today;
     document.getElementById("state").textContent = isDay
       ? (nowMin < cur.at ? "예정보다 이릅니다" : (nowMin > cur.end ? "예정보다 " + (nowMin - cur.end) + "분 늦었습니다" : "일정대로입니다"))
-      : "10월 3일이 아닙니다 — 계획 보기";
+      : (day.slice(5).replace("-", "월 ") + "일이 여행날 — 계획 보기");
 
     var dirEl = document.getElementById("dir"), toEl = document.getElementById("to"), metaEl = document.getElementById("meta"),
         noteEl = document.getElementById("note"), stepEl = document.getElementById("steps"), reroute = document.getElementById("reroute");
 
     if (!nxt) {
       dirEl.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L19 7"></path></svg>';
-      toEl.textContent = cur.p.name + " — 오늘의 마지막";
-      var back = dijkstra(POOL[cur.id].node, POOL.gate.node);
-      metaEl.innerHTML = "끝나면 정문까지 <b>" + Math.round(back.m) + " m</b> · 도보 " + Math.ceil(back.m / WALK) + "분";
+      if (cur.p.kind === "exit") {
+        toEl.textContent = "오늘 일정 끝 — " + cur.p.name;
+        metaEl.innerHTML = "총 " + (plan.totalM / 1000).toFixed(1) + " km · " + MOVE + " " + plan.walkMin + "분 · " + C.hm(plan.endAt) + " 종료";
+      } else {
+        toEl.textContent = cur.p.name + " — 오늘의 마지막";
+        var home = POOL.gate || POOL[state.items[0]];
+        var back = home ? dijkstra(POOL[cur.id].node, home.node) : null;
+        metaEl.innerHTML = back
+          ? "끝나면 " + C.esc(C.shortName(home.name)) + "까지 <b>" + Math.round(back.m) + " m</b> · " + MOVE + " " + Math.ceil(back.m / WALK) + "분"
+          : "오늘 마지막 일정입니다";
+      }
       noteEl.className = "nav-note"; noteEl.textContent = cur.p.note;
       stepEl.hidden = true; reroute.hidden = true;
       return;
@@ -433,7 +470,7 @@
     toEl.textContent = nxt.p.name;
     metaEl.innerHTML = COMPASS[Math.round(ang / 45) % 8] + "쪽 · <b>" + Math.round(remain) + " m</b>"
       + (onPath ? ' <span style="color:var(--green)">내 위치 기준</span>' : "")
-      + " · 도보 " + mins + "분 · " + C.hm(depart) + " 출발 → " + C.hm(nxt.at) + " 도착";
+      + " · " + MOVE + " " + mins + "분 · " + C.hm(depart) + " 출발 → " + C.hm(nxt.at) + " 도착";
     var warn = nxt.problem || (isDay && nowMin > depart ? "출발 시각이 지났습니다 — 지금 움직이세요" : null);
     noteEl.className = "nav-note" + (warn ? " warn" : "");
     noteEl.textContent = warn || (nxt.p.note || "");
@@ -477,6 +514,22 @@
     else if (act === "up" && i > 0) { next.splice(i - 1, 0, next.splice(i, 1)[0]); propose(next, name + " 앞으로"); }
     else if (act === "down" && i < next.length - 1) { next.splice(i + 1, 0, next.splice(i, 1)[0]); propose(next, name + " 뒤로"); }
   });
+  /* 구역 팝업 */
+  var zOpen = document.getElementById("zoneOpen"), zPop = document.getElementById("zonePop");
+  function zoneToggle(v) {
+    var on = v === undefined ? zPop.hidden : v;
+    zPop.hidden = !on;
+    zOpen.setAttribute("aria-expanded", String(on));
+  }
+  zOpen.addEventListener("click", function (e) { e.stopPropagation(); zoneToggle(); });
+  document.getElementById("zoneClose").addEventListener("click", function () { zoneToggle(false); });
+  document.addEventListener("click", function (e) {
+    if (zPop.hidden) return;
+    if (e.target.closest("#zonePop") || e.target.closest("#zoneOpen")) return;
+    zoneToggle(false);
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !zPop.hidden) zoneToggle(false); });
+
   document.getElementById("zones").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-zone]");
     if (!b) return;
@@ -537,6 +590,13 @@
       { enableHighAccuracy: true, maximumAge: 15000, timeout: 12000 });
   });
 
+  C.on("region", function (r) {
+    if (!r || !r.data) return;
+    POOL = C.pool;
+    bindRegion(r.data);
+    render();
+  });
+
   C.on("plan:external", function () {
     document.getElementById("start").value = state.start;
     document.getElementById("sat").checked = state.sat;
@@ -565,24 +625,40 @@
     return best;
   }
 
+  function tools_list() {
+    var p = compute();
+    return {
+      total_km: +(p.totalM / 1000).toFixed(2), walk_min: p.walkMin, ends_at: C.hm(p.endAt),
+      items: p.rows.map(function (r, i) { return { no: i + 1, time: C.hm(r.at), name: r.p.name, zone: r.p.zl, stay_min: r.stay, problem: r.problem || null }; })
+    };
+  }
+  function tools_next() {
+    var p = compute(), n = p.rows[state.cursor + 1];
+    if (!n) return { done: true, message: "마지막 일정입니다." };
+    return { name: n.p.name, at: C.hm(n.at), meters: Math.round(n.leg ? n.leg.m : 0), walk_min: Math.ceil((n.leg ? n.leg.m : 0) / WALK) };
+  }
+  function tools_optimize() {
+    var before = compute(), opt = optimize(state.items), d = diff(before, compute(opt.items));
+    if (d.dm > -30) return { ok: false, message: "이미 충분히 짧습니다.", delta_m: Math.round(d.dm) };
+    commit(opt.items, "순서 최적화", d);
+    return { ok: true, delta_m: Math.round(d.dm), delta_walk_min: d.dwalk };
+  }
+
   C.register({
     id: "plan", name: "일정",
+    persona: "너는 테마파크 하루 일정을 책임지는 전문가다. 실제 보행로 위에서 거리를 계산하고, "
+      + "동물 구역은 17:00~17:30에 닫히고 공연은 20:30·21:20에 고정이라는 제약을 늘 염두에 둔다. "
+      + "일정을 바꾸면 걷는 거리와 시간이 어떻게 변하는지 숫자로 말한다. "
+      + "사용자가 손해를 보는 변경이면 확인 창이 뜬다는 점을 알려 준다.",
+    fallback: function (task) {
+      if (/최적|줄여|짧게/.test(task)) return tools_optimize();
+      if (/다음|어디로|길/.test(task)) return tools_next();
+      return tools_list();
+    },
     api: { compute: compute, whereAt: whereAt, render: render, propose: propose, findStop: findStop },
     tools: [
-      { name: "list", description: "오늘 일정 전체를 시각·장소·걷는 거리와 함께 돌려준다.",
-        execute: function () {
-          var p = compute();
-          return {
-            total_km: +(p.totalM / 1000).toFixed(2), walk_min: p.walkMin, ends_at: C.hm(p.endAt),
-            items: p.rows.map(function (r, i) { return { no: i + 1, time: C.hm(r.at), name: r.p.name, zone: r.p.zl, stay_min: r.stay, problem: r.problem || null }; })
-          };
-        } },
-      { name: "next", description: "지금 기준 다음 목적지와 거리·도보 시간.",
-        execute: function () {
-          var p = compute(), n = p.rows[state.cursor + 1];
-          if (!n) return { done: true, message: "마지막 일정입니다." };
-          return { name: n.p.name, at: C.hm(n.at), meters: Math.round(n.leg ? n.leg.m : 0), walk_min: Math.ceil((n.leg ? n.leg.m : 0) / WALK) };
-        } },
+      { name: "list", description: "오늘 일정 전체를 시각·장소·걷는 거리와 함께 돌려준다.", execute: tools_list },
+      { name: "next", description: "지금 기준 다음 목적지와 거리·도보 시간.", execute: tools_next },
       { name: "add", description: "어트랙션을 일정에 넣는다. 걷는 거리가 많이 늘면 사용자에게 확인 창을 띄운다.",
         inputSchema: { type: "object", properties: { name: { type: "string", description: "어트랙션 이름" } }, required: ["name"] },
         execute: function (a) {
@@ -606,13 +682,7 @@
           propose(next, C.shortName(p.name) + " 빼기");
           return { ok: true, name: p.name, delta_m: Math.round(d.dm), delta_walk_min: d.dwalk };
         } },
-      { name: "optimize", description: "걷는 거리가 줄도록 순서를 다시 짠다.",
-        execute: function () {
-          var before = compute(), opt = optimize(state.items), d = diff(before, compute(opt.items));
-          if (d.dm > -30) return { ok: false, message: "이미 충분히 짧습니다.", delta_m: Math.round(d.dm) };
-          commit(opt.items, "순서 최적화", d);
-          return { ok: true, delta_m: Math.round(d.dm), delta_walk_min: d.dwalk };
-        } }
+      { name: "optimize", description: "걷는 거리가 줄도록 순서를 다시 짠다.", execute: tools_optimize }
     ]
   });
 

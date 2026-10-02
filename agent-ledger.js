@@ -86,12 +86,16 @@
       }).join("") + "</div>";
 
     listEl.innerHTML = rows.length ? rows.map(function (r) {
-      return '<div class="lrow"><span class="lt">' + C.hm(r.min) + "</span>"
-        + '<span class="lc" style="color:' + catColor(r.cat) + '">' + catName(r.cat) + "</span>"
-        + '<span class="lm">' + C.esc(r.memo || (r.place ? r.place : "—")) + (r.place && r.memo ? ' <span class="dim">· ' + C.esc(r.place) + "</span>" : "") + "</span>"
+      var col = catColor(r.cat);
+      return '<div class="lrow" data-cat="' + r.cat + '" style="--lc:' + col + '">'
+        + '<span class="lt">' + C.hm(r.min) + "</span>"
+        + '<span class="lc">' + catName(r.cat) + "</span>"
+        + '<span class="lm"><b>' + C.esc(r.memo || (r.place ? r.place : "—")) + "</b>"
+        + (r.place && r.memo ? '<span class="lp">' + C.esc(r.place) + "</span>" : "") + "</span>"
         + '<span class="la">' + C.won(r.amount) + "</span>"
         + '<button class="icb del" data-del="' + r._id + '" aria-label="삭제">&#10005;</button></div>';
-    }).join("") : '<p class="dim">아직 기록이 없습니다. 위에서 금액과 분류를 넣으면 <b>그 시각에 있던 장소</b>가 함께 저장됩니다.</p>';
+    }).join("") : '<div class="empty"><img class="catpic" src="cat-sleep.jpg" alt="쿠션에서 자는 아깽이" loading="lazy" style="width:170px;height:118px;border-radius:18px">'
+      + '<p>아직 기록이 없어요.<br>금액과 분류를 넣으면 <b>그 시각에 있던 장소</b>가 함께 저장됩니다.</p></div>';
   }
 
   formEl.addEventListener("submit", function (e) {
@@ -130,10 +134,21 @@
   });
 
   C.on("cap:db", function () { if (tripId) bind(tripId); });
-  C.on("trip:open", function (t) { bind(t.id); });
+  C.on("trip:open", function (t) {
+    if (t.people) { people = +t.people; peopleEl.value = people; }
+    bind(t.id);
+  });
 
   C.register({
     id: "ledger", name: "회계",
+    persona: "너는 여행 가계부를 맡은 회계 담당이다. 분류는 입장권·차량유지비·식비·간식·기념품·기타 여섯 가지다. "
+      + "사용자가 금액을 말하면 분류를 골라 바로 기록하고, 얼마를 어디에 썼는지 숫자로 답한다. "
+      + "지출을 기록할 때 그 시각에 있던 장소가 자동으로 붙는다는 점을 활용하라.",
+    fallback: function () {
+      var t = totals(), by = {};
+      CATS.forEach(function (c) { if (t.by[c.id]) by[c.name] = t.by[c.id]; });
+      return { total: t.sum, per_person: Math.round(t.sum / Math.max(1, people)), people: people, by_category: by, count: rows.length };
+    },
     api: { bind: bind, totals: totals },
     tools: [
       { name: "summary", description: "오늘 쓴 돈의 분류별 합계와 총액.",
