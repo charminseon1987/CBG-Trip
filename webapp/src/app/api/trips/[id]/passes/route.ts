@@ -1,7 +1,7 @@
-import { fail, notFound, ok } from "@/lib/http";
+import { fail, ok } from "@/lib/http";
 import { getPassData, quote, type Party } from "@/lib/passes";
 import { getParkDay } from "@/lib/parkday";
-import { store } from "@/lib/store";
+import { guardTrip } from "@/lib/guard";
 
 /** GET /api/trips/:id/passes?visits=4&season=B&adult=2&child=2&renew=0
  *  모델 없이도 도는 결정적 계산. 패스권 에이전트도 같은 함수를 쓴다. */
@@ -10,8 +10,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const trip = await store.getTrip(id);
-  if (!trip) return notFound("여행");
+  const g = await guardTrip(id);
+  if (!g.ok) return g.res;
+  const trip = g.trip;
   if (trip.region !== "everland") {
     return fail("no_pass_data", "지금 패스권 자료가 있는 곳은 에버랜드뿐입니다.", 404);
   }

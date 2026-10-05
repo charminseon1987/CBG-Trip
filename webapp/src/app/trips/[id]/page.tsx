@@ -4,11 +4,14 @@ import CatFace from "@/components/CatFace";
 import TripWorkspace from "@/components/TripWorkspace";
 import { getRegion } from "@/lib/regions";
 import { store } from "@/lib/store";
+import { currentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function TripPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const me = await currentUser();
+  if (store.canSee && !(await store.canSee(id, me))) notFound();
   const trip = await store.getTrip(id);
   if (!trip) notFound();
 
@@ -16,13 +19,13 @@ export default async function TripPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
-      <header className="flex flex-none items-center gap-4 border-b border-rule bg-card px-4 py-2">
+      <header className="flex flex-none items-center gap-3 border-b border-rule bg-card px-3 py-2">
         <Link href="/" aria-label="여행 목록"
           className="grid h-8 w-8 place-content-center rounded-lg border border-rule">←</Link>
         <CatFace who="logo" size={34} ring="border-brand" />
         <div className="min-w-0 leading-tight">
           <b className="block truncate">{trip.title}</b>
-          <span className="block truncate font-mono text-[11px] text-muted">
+          <span className="block truncate font-mono text-[12.5px] text-muted">
             {trip.date} · {trip.place} · {trip.people}명
           </span>
         </div>

@@ -1,6 +1,7 @@
-import { notFound, ok } from "@/lib/http";
+import { ok } from "@/lib/http";
 import { compute, hm, turns } from "@/lib/itinerary";
 import { getRegion } from "@/lib/regions";
+import { guardTrip } from "@/lib/guard";
 import { store } from "@/lib/store";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -9,8 +10,9 @@ type Ctx = { params: Promise<{ id: string }> };
  *  지도(SVG·좌표)는 /api/regions/:key 에서 따로 받는다. */
 export async function GET(_req: Request, { params }: Ctx) {
   const { id } = await params;
-  const trip = await store.getTrip(id);
-  if (!trip) return notFound("여행");
+  const g = await guardTrip(id);
+  if (!g.ok) return g.res;
+  const trip = g.trip;
   const pack = getRegion(trip.region);
   const it = await store.getItinerary(id);
   if (!pack || !it) return ok({ mapped: false, trip, plan: null });
@@ -22,6 +24,8 @@ export async function GET(_req: Request, { params }: Ctx) {
       key: pack.key, title: pack.title, mode: pack.mode, speed: pack.speed,
       source: pack.source, vw: pack.vw, vh: pack.vh,
       zones: pack.zones,               /* 구역 id·이름·색 — 지도에서 구역을 갈라 칠한다 */
+      origin: pack.origin,             /* 위경도 → 지도 좌표 변환식. 내 위치를 찍는 데 쓴다 */
+      mPerPx: pack.mPerPx,
     },
     itinerary: it,
     summary: {
@@ -36,6 +40,9 @@ export async function GET(_req: Request, { params }: Ctx) {
       name: r.stop.name,
       zone: r.stop.zl,
       zoneId: r.stop.zone,
+      kind: r.stop.kind,
+      lat: r.stop.lat,
+      lng: r.stop.lng,
       x: r.stop.x,
       y: r.stop.y,
       at: hm(r.at),

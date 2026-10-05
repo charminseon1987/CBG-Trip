@@ -68,17 +68,28 @@ export function planTools(ctx: AgentContext) {
         }
 
         const plan = compute(c.pack, c.it.items, c.it.start, c.it.busy);
+
+        /* 운영표가 아직 공개되지 않은 날이면 "준비중" 을 그대로 내보내지 않는다.
+           모델이 그 글자를 보고 "닫았다" 로 옮기는 일이 실제로 있었다.
+           틀린 답을 만들 재료 자체를 주지 않는 것이 프롬프트로 막는 것보다 확실하다. */
+        const label = (f: ReturnType<typeof findFacility>) => {
+          if (!f) return null;
+          if (f.status === "closed") return "휴장";
+          if (f.status === "preparing") return info.provisional ? "아직 공개 전" : "준비중";
+          return "운영";
+        };
+
         const checked = plan.rows.map((r) => {
           const f = findFacility(info, r.stop.name);
+          const open = info.provisional && f?.status === "preparing" ? null : f?.open ?? null;
           return {
             name: r.stop.name,
             planned_at: hm(r.at),
             found: Boolean(f),
-            status: f?.statusLabel ?? null,
-            open: f?.open ?? null,
-            close: f?.close ?? null,
+            status: label(f),
+            open,
+            close: info.provisional && f?.status === "preparing" ? null : f?.close ?? null,
             show_times: f?.showTimes ?? [],
-            /* 미공개(준비중)는 휴장이 아니다 — 확정 공개된 날에만 경고한다 */
             warn: f && (f.status === "closed" || (!info.provisional && f.status === "preparing"))
               ? `${r.stop.name} 은(는) 이 날 ${f.statusLabel} 입니다`
               : null,
@@ -96,9 +107,14 @@ export function planTools(ctx: AgentContext) {
             ? "이 날짜의 운영표는 아직 공개 전입니다. '준비중'은 휴장이 아니라 미정이라는 뜻이니 휴장이라고 말하지 마세요. 방문 하루 전에 다시 확인하라고 안내하세요."
             : null,
           source: info.source,
-          summary: info.counts,
+          summary: info.provisional
+            ? { 안내: "이 날짜는 운영표가 아직 공개되지 않았습니다. 휴장 여부를 말할 수 없습니다." }
+            : info.counts,
           in_plan: checked,
           problems: checked.filter((x) => x.warn).map((x) => x.warn),
+          closed_for_sure: info.facilities
+            .filter((f) => f.status === "closed")
+            .map((f) => f.name),
           shows: info.facilities
             .filter((f) => f.category.includes("공연") && f.status === "open")
             .map((f) => ({ name: f.name, times: f.showTimes, open: f.open, close: f.close })),

@@ -3,7 +3,7 @@ import { delegate } from "@/agents/chief";
 import { hasKey } from "@/agents/harness";
 import { AGENTS } from "@/agents/registry";
 import { fail, notFound, ok, parse } from "@/lib/http";
-import { store } from "@/lib/store";
+import { guardTrip } from "@/lib/guard";
 
 export const maxDuration = 60;
 
@@ -24,7 +24,8 @@ export async function POST(
 
   const p = await parse(req, Body);
   if (!p.ok) return p.res;
-  if (!(await store.getTrip(p.data.tripId))) return notFound("여행");
+  const g = await guardTrip(p.data.tripId);
+  if (!g.ok) return g.res;
 
   const r = await delegate(id, { tripId: p.data.tripId }, p.data.task);
   return ok({ agent: r.agent, text: r.text, calls: r.calls, usage: r.usage });

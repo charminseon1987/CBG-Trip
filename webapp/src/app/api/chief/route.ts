@@ -2,9 +2,9 @@ import { z } from "zod";
 import { classify, delegate, factsOf, keywordRoute, offlineSay, speak } from "@/agents/chief";
 import { hasKey } from "@/agents/harness";
 import { AGENTS } from "@/agents/registry";
-import { notFound, parse } from "@/lib/http";
+import { parse } from "@/lib/http";
 import { getRegion } from "@/lib/regions";
-import { store } from "@/lib/store";
+import { guardTrip } from "@/lib/guard";
 import type { RunResult } from "@/agents/harness";
 
 export const maxDuration = 60;
@@ -28,9 +28,9 @@ export async function POST(req: Request) {
   if (!p.ok) return p.res;
   const { tripId, message } = p.data;
 
-  const trip = await store.getTrip(tripId);
-  if (!trip) return notFound("여행");
-  const hasMap = Boolean(getRegion(trip.region));
+  const g = await guardTrip(tripId);
+  if (!g.ok) return g.res;
+  const hasMap = Boolean(getRegion(g.trip.region));
 
   const stream = new ReadableStream({
     async start(controller) {

@@ -47,3 +47,11 @@
 .pin-num { font-size: 10.5px; font-weight: 800; fill: #fff; pointer-events: none; }
 .pin-ghost { opacity: .9; }
 .pin-ghost:hover { opacity: 1; }
+
+/* 내 위치 — 숨 쉬듯 퍼지는 원 */
+.me-pulse { animation: mepulse 1.8s ease-out infinite; transform-origin: center; }
+@keyframes mepulse {
+  0%   { r: 10; opacity: .7; }
+  100% { r: 26; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .me-pulse { animation: none; opacity: .4; } }

@@ -107,7 +107,7 @@ export default function ChiefDock({
       <div ref={logRef} className="flex max-h-[26rem] flex-col gap-2 overflow-y-auto p-3 text-sm">
         {msgs.map((m, i) =>
           m.role === "sys" ? (
-            <p key={i} className="self-center rounded-full bg-paper px-3 py-1 text-[11px] text-muted">
+            <p key={i} className="self-center rounded-full bg-paper px-3 py-1 text-[12.5px] text-muted">
               {m.text}
             </p>
           ) : m.role === "me" ? (
@@ -121,7 +121,7 @@ export default function ChiefDock({
             </div>
           ),
         )}
-        {busy && <p className="self-start text-[11px] text-muted">생각하는 중…</p>}
+        {busy && <p className="self-start text-[12.5px] text-muted">생각하는 중…</p>}
       </div>
 
       <form onSubmit={ask} className="flex items-center gap-2 border-t border-rule px-3 py-2">

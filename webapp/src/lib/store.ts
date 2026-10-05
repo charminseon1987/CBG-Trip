@@ -9,13 +9,15 @@
    ============================================================ */
 import { randomUUID } from "node:crypto";
 import { defaultItinerary } from "./itinerary";
+import { SqlStore } from "./store-sql";
 import { getRegion, guessRegion } from "./regions";
 import type { Expense, Itinerary, Photo, Trip } from "./types";
 
 export interface Store {
-  listTrips(): Promise<Trip[]>;
+  listTrips(viewer?: { id: string; role: string } | null): Promise<Trip[]>;
+  canSee?(tripId: string, viewer?: { id: string; role: string } | null): Promise<boolean>;
   getTrip(id: string): Promise<Trip | null>;
-  createTrip(input: Omit<Trip, "id" | "createdAt" | "region"> & { region?: string | null }): Promise<Trip>;
+  createTrip(input: Omit<Trip, "id" | "createdAt" | "region"> & { region?: string | null; userId?: string | null }): Promise<Trip>;
   updateTrip(id: string, patch: Partial<Trip>): Promise<Trip | null>;
   deleteTrip(id: string): Promise<boolean>;
 
@@ -24,11 +26,24 @@ export interface Store {
 
   listPhotos(tripId: string): Promise<Photo[]>;
   addPhoto(tripId: string, p: Omit<Photo, "id" | "tripId">): Promise<Photo>;
+  updatePhoto(tripId: string, id: string, patch: Partial<Photo>): Promise<Photo | null>;
   deletePhoto(tripId: string, id: string): Promise<boolean>;
 
   listExpenses(tripId: string): Promise<Expense[]>;
   addExpense(tripId: string, e: Omit<Expense, "id" | "tripId">): Promise<Expense>;
+  updateExpense(tripId: string, id: string, patch: Partial<Expense>): Promise<Expense | null>;
   deleteExpense(tripId: string, id: string): Promise<boolean>;
+
+  /* 설계 에이전트가 짠 하루 */
+  getDraft(tripId: string): Promise<Draft | null>;
+  putDraft(tripId: string, d: { items: DraftItem[]; tips: string[]; rough?: boolean }): Promise<Draft>;
+}
+
+export interface DraftItem {
+  time: string; name: string; kind: string; minutes?: number; note?: string;
+}
+export interface Draft {
+  tripId: string; items: DraftItem[]; tips: string[]; rough: boolean; madeAt: string;
 }
 
 const HOME: Trip = {
@@ -50,13 +65,21 @@ class MemoryStore implements Store {
   private photos = new Map<string, Photo[]>();
   private expenses = new Map<string, Expense[]>();
 
-  async listTrips() {
-    return [...this.trips.values()].sort((a, b) => a.date.localeCompare(b.date));
+  async listTrips(viewer?: { id: string; role: string } | null) {
+    const all = [...this.trips.values()].sort((a, b) => a.date.localeCompare(b.date));
+    if (!viewer || viewer.role === "admin") return all;
+    return all.filter((t) => !t.userId || t.userId === viewer.id);
+  }
+  async canSee(tripId: string, viewer?: { id: string; role: string } | null) {
+    const t = this.trips.get(tripId);
+    if (!t) return false;
+    if (!viewer || viewer.role === "admin") return true;
+    return !t.userId || t.userId === viewer.id;
   }
   async getTrip(id: string) {
     return this.trips.get(id) ?? null;
   }
-  async createTrip(input: Omit<Trip, "id" | "createdAt" | "region"> & { region?: string | null }) {
+  async createTrip(input: Omit<Trip, "id" | "createdAt" | "region"> & { region?: string | null; userId?: string | null }) {
     const region = input.region ?? guessRegion(input.place, input.title);
     const trip: Trip = {
       ...input,
@@ -112,6 +135,12 @@ class MemoryStore implements Store {
     this.photos.set(tripId, [...(this.photos.get(tripId) ?? []), photo]);
     return photo;
   }
+  async updatePhoto(tripId: string, id: string, patch: Partial<Photo>) {
+    const hit = (this.photos.get(tripId) ?? []).find((p) => p.id === id);
+    if (!hit) return null;
+    Object.assign(hit, patch, { id, tripId });
+    return hit;
+  }
   async deletePhoto(tripId: string, id: string) {
     const list = this.photos.get(tripId) ?? [];
     const next = list.filter((p) => p.id !== id);
@@ -127,14 +156,35 @@ class MemoryStore implements Store {
     this.expenses.set(tripId, [...(this.expenses.get(tripId) ?? []), row]);
     return row;
   }
+  async updateExpense(tripId: string, id: string, patch: Partial<Expense>) {
+    const hit = (this.expenses.get(tripId) ?? []).find((x) => x.id === id);
+    if (!hit) return null;
+    Object.assign(hit, patch, { id, tripId });
+    return hit;
+  }
   async deleteExpense(tripId: string, id: string) {
     const list = this.expenses.get(tripId) ?? [];
     const next = list.filter((x) => x.id !== id);
     this.expenses.set(tripId, next);
     return next.length !== list.length;
   }
+
+  private drafts = new Map<string, Draft>();
+  async getDraft(tripId: string) { return this.drafts.get(tripId) ?? null; }
+  async putDraft(tripId: string, d: { items: DraftItem[]; tips: string[]; rough?: boolean }) {
+    const row: Draft = { tripId, items: d.items, tips: d.tips, rough: !!d.rough, madeAt: new Date().toISOString() };
+    this.drafts.set(tripId, row);
+    return row;
+  }
 }
 
-/* 개발 중 핫리로드로 저장소가 날아가지 않게 전역에 붙여 둔다 */
+/* DATABASE_URL 이 있으면 DB, 없으면 메모리.
+   개발 중 핫리로드로 저장소가 날아가지 않게 전역에 붙여 둔다. */
 const g = globalThis as unknown as { __store?: Store };
-export const store: Store = g.__store ?? (g.__store = new MemoryStore());
+
+function pick(): Store {
+  return process.env.DATABASE_URL ? new SqlStore() : new MemoryStore();
+}
+
+export const store: Store = g.__store ?? (g.__store = pick());
+export const storeKind = () => (process.env.DATABASE_URL ? "libsql" : "memory");

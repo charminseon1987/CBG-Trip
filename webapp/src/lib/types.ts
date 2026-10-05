@@ -54,6 +54,7 @@ export interface RegionPack {
 
 export interface Trip {
   id: string;
+  userId?: string | null;        // 주인. null 이면 모두가 보는 기본 여행
   title: string;
   date: string;                  // YYYY-MM-DD
   end: string;

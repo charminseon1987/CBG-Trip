@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ok, parse } from "@/lib/http";
+import { guardTrip } from "@/lib/guard";
 import { store } from "@/lib/store";
 import { placeAt } from "@/lib/place";
 import { EXPENSE_CATEGORIES } from "@/lib/types";
@@ -16,6 +17,8 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, { params }: Ctx) {
   const { id } = await params;
+  const g = await guardTrip(id);
+  if (!g.ok) return g.res;
   const rows = await store.listExpenses(id);
   const trip = await store.getTrip(id);
   const people = Math.max(1, trip?.people ?? 1);
@@ -29,6 +32,8 @@ export async function GET(_req: Request, { params }: Ctx) {
 
 export async function POST(req: Request, { params }: Ctx) {
   const { id } = await params;
+  const g = await guardTrip(id);
+  if (!g.ok) return g.res;
   const p = await parse(req, New);
   if (!p.ok) return p.res;
   const place = p.data.place ?? (await placeAt(id, p.data.at));

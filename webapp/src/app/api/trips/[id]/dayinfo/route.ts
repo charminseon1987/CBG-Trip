@@ -1,6 +1,6 @@
-import { fail, notFound, ok } from "@/lib/http";
+import { fail, ok } from "@/lib/http";
 import { getDayInfo } from "@/lib/dayinfo";
-import { store } from "@/lib/store";
+import { guardTrip } from "@/lib/guard";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 20;
@@ -12,8 +12,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const trip = await store.getTrip(id);
-  if (!trip) return notFound("여행");
+  const g = await guardTrip(id);
+  if (!g.ok) return g.res;
+  const trip = g.trip;
   if (trip.region !== "everland") {
     return fail("no_dayinfo", "일별 운영정보는 지금 에버랜드만 제공합니다.", 404);
   }

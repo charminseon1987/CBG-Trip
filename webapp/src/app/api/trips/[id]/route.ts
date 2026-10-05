@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { fail, notFound, ok, parse } from "@/lib/http";
 import { store } from "@/lib/store";
+import { currentUser } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 const Patch = z.object({
   title: z.string().min(1).max(60).optional(),
@@ -16,6 +19,8 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, { params }: Ctx) {
   const { id } = await params;
+  const me = await currentUser();
+  if (store.canSee && !(await store.canSee(id, me))) return notFound("여행");
   const trip = await store.getTrip(id);
   return trip ? ok({ trip }) : notFound("여행");
 }

@@ -6,7 +6,15 @@
      GET /api/v1/iam/facilities/parkOpenTime?...       그날 개폐 시각 + 시즌 등급
    ============================================================ */
 
+import { getKmaWeather, hasKmaKey } from "./weather-kma";
+
 const BASE = "https://wwwapi.everland.com/api/v1/iam";
+
+/* 지역팩마다 날씨를 재는 좌표. 기상청 격자는 5km 단위라 공원 중심 한 점이면 충분하다. */
+const COORD: Record<string, { lat: number; lng: number }> = {
+  everland: { lat: 37.2936, lng: 127.2022 },
+  gyeongju: { lat: 35.8347, lng: 129.2190 },
+};
 const TTL_MS = 30 * 60 * 1000;
 const TIMEOUT_MS = 10_000;
 
@@ -24,6 +32,8 @@ export interface Weather {
   low: number | null;
   high: number | null;
   isToday: boolean;
+  from: "kma" | "everland"; // 어디서 온 값인가
+  note?: string;            // 격자·발표시각 같은 근거
 }
 
 export interface ParkDay {
@@ -58,8 +68,9 @@ function parseTemp(t: string): { low: number | null; high: number | null } {
   return { low: null, high: null };
 }
 
-export async function getParkDay(date: string): Promise<ParkDay> {
-  const hit = cache.get(date);
+export async function getParkDay(date: string, region = "everland"): Promise<ParkDay> {
+  const key = `${region}:${date}`;
+  const hit = cache.get(key);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.data;
 
   const ymd = date.replace(/-/g, "");
@@ -70,6 +81,32 @@ export async function getParkDay(date: string): Promise<ParkDay> {
     source: "에버랜드 공식 API (날씨 · 운영시간 · 시즌 등급)",
   };
 
+  /* 1순위: 공공데이터포털 기상청 단기예보.
+     코드 의미가 공개돼 있어 라벨을 믿고 쓸 수 있다. 키가 없거나 예보 범위 밖이면 2순위로 넘어간다. */
+  const c = COORD[region];
+  if (hasKmaKey() && c) {
+    try {
+      const k = await getKmaWeather(c.lat, c.lng, date);
+      if (k) {
+        const today = new Date().toISOString().slice(0, 10) === date;
+        base.weather = {
+          code: `SKY${k.sky ?? "-"}/PTY${k.pty ?? "-"}`,
+          label: k.label || null,
+          icon: k.icon,
+          temp: today && k.temp != null ? String(k.temp)
+              : k.low != null && k.high != null ? `${k.low}/${k.high}` : "",
+          low: k.low, high: k.high,
+          isToday: today,
+          from: "kma",
+          note: `기상청 ${k.baseTime} 발표 · 격자 ${k.grid.nx},${k.grid.ny}`,
+        };
+        base.source = k.source;
+      }
+    } catch (e) {
+      base.error = `기상청 API: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  }
+
   try {
     const [w, p] = await Promise.allSettled([
       json<{ day: number; wcode: string; temp: string; date: string }[]>(
@@ -78,7 +115,7 @@ export async function getParkDay(date: string): Promise<ParkDay> {
         `${BASE}/facilities/parkOpenTime?salesDate=${ymd}&parkKindCd=01`),
     ]);
 
-    if (w.status === "fulfilled") {
+    if (w.status === "fulfilled" && !base.weather) {   /* 기상청에서 못 받았을 때만 */
       const row = w.value.find((x) => x.date === ymd);
       if (row) {
         const known = WEATHER[row.wcode];
@@ -89,6 +126,8 @@ export async function getParkDay(date: string): Promise<ParkDay> {
           temp: row.temp,
           ...parseTemp(row.temp),
           isToday: row.day === 0,
+          from: "everland",
+          note: "에버랜드 자체 날씨 — 코드 의미가 공개되지 않아 확인된 것만 라벨을 답니다",
         };
       }
     }
@@ -104,6 +143,6 @@ export async function getParkDay(date: string): Promise<ParkDay> {
     base.error = e instanceof Error ? e.message : String(e);
   }
 
-  cache.set(date, { at: Date.now(), data: base });
+  cache.set(key, { at: Date.now(), data: base });
   return base;
 }

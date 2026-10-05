@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { ok, parse } from "@/lib/http";
 import { store } from "@/lib/store";
+import { currentUser } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 const NewTrip = z.object({
   title: z.string().min(1).max(60),
@@ -14,13 +17,17 @@ const NewTrip = z.object({
 
 /** GET /api/trips */
 export async function GET() {
-  return ok({ trips: await store.listTrips() });
+  const me = await currentUser();
+  return ok({ trips: await store.listTrips(me) });
 }
 
 /** POST /api/trips — 새 여행. region 을 주지 않으면 장소 이름으로 지역팩을 짐작한다. */
 export async function POST(req: Request) {
   const p = await parse(req, NewTrip);
   if (!p.ok) return p.res;
-  const trip = await store.createTrip({ ...p.data, end: p.data.end ?? p.data.date });
+  const me = await currentUser();
+  const trip = await store.createTrip({
+    ...p.data, end: p.data.end ?? p.data.date, userId: me?.id ?? null,
+  });
   return ok({ trip }, { status: 201 });
 }

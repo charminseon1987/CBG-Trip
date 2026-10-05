@@ -7,6 +7,7 @@ export const CAT: Record<string, { src: string; alt: string }> = {
   designer: { src: "/cats/cat-designer.jpg", alt: "설계 냥이" },
   album: { src: "/cats/cat-album.jpg", alt: "앨범 냥이" },
   ledger: { src: "/cats/cat-ledger.jpg", alt: "가계부 냥이" },
+  pass: { src: "/cats/cat-pass.jpg", alt: "패스권 냥이" },
   logo: { src: "/cats/cat-face.jpg", alt: "우리집 냥이" },
   sleep: { src: "/cats/cat-sleep.jpg", alt: "자는 아깽이" },
   stretch: { src: "/cats/cat-stretch.jpg", alt: "러그 위 냥이" },

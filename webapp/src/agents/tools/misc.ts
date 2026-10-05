@@ -60,10 +60,8 @@ export function albumTools({ tripId }: AgentContext) {
       description: "사진 한 장에 캡션을 쓴다.",
       inputSchema: z.object({ id: z.string(), caption: z.string() }),
       execute: async ({ id, caption }) => {
-        const photos = await store.listPhotos(tripId);
-        const p = photos.find((x) => x.id === id);
+        const p = await store.updatePhoto(tripId, id, { caption });
         if (!p) return { ok: false, message: "그 사진을 찾지 못했습니다." };
-        p.caption = caption;
         return { ok: true, id, caption };
       },
     }),

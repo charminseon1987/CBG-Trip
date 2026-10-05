@@ -1,22 +1,28 @@
 import Link from "next/link";
 import { store } from "@/lib/store";
+import { currentUser } from "@/lib/auth";
 import { getRegion } from "@/lib/regions";
 import { agentList } from "@/agents/registry";
 import { modelName, providerId } from "@/agents/provider";
 import CatFace from "@/components/CatFace";
+import UserMenu from "@/components/UserMenu";
 import NewTripForm from "@/components/NewTripForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const trips = await store.listTrips();
+  const me = await currentUser();
+  const trips = await store.listTrips(me);
   const agents = agentList();
 
   return (
     <main className="mx-auto w-full max-w-5xl px-5 py-10">
-      <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-brand">
-        Family trip log
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="font-mono text-[12.5px] font-bold uppercase tracking-[0.18em] text-brand">
+          Family trip log
+        </p>
+        <UserMenu user={me} />
+      </div>
       <h1 className="mt-2 text-4xl font-extrabold tracking-tight">우리 여행 기록</h1>
       <p className="mt-3 max-w-2xl text-ink-2">
         여행 하나를 열면 <b>일정 · 앨범 · 가계부</b> 세 탭이 나옵니다. 각 탭은 담당 에이전트가

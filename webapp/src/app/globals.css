@@ -7,6 +7,10 @@
 /* 반복되는 UI 조각 */
 @import "../styles/components.css";
 
+/* 기준 글자 크기. rem 으로 쓰는 모든 간격·글자가 같이 커진다. */
+html { font-size: 17px; }
+@media (max-width: 1280px) { html { font-size: 16px; } }
+
 html, body { height: 100%; }
 body {
   background: var(--color-paper);

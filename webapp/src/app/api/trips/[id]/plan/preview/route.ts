@@ -2,6 +2,7 @@ import { z } from "zod";
 import { bestInsert, compute, diff, hm, optimize } from "@/lib/itinerary";
 import { fail, notFound, ok, parse } from "@/lib/http";
 import { getRegion } from "@/lib/regions";
+import { guardTrip } from "@/lib/guard";
 import { store } from "@/lib/store";
 
 /** 바꾸기 전에 얼마나 늘고 주는지 — 모델 없이 도는 계산.
@@ -20,8 +21,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const trip = await store.getTrip(id);
-  if (!trip) return notFound("여행");
+  const g = await guardTrip(id);
+  if (!g.ok) return g.res;
+  const trip = g.trip;
   const pack = getRegion(trip.region);
   const it = await store.getItinerary(id);
   if (!pack || !it) return fail("no_map", "이 여행에는 지도 데이터가 없습니다.", 404);

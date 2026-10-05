@@ -41,8 +41,10 @@ function placeLabels(rows: PlanRowDTO[], vw: number, vh: number) {
   });
 }
 
+export interface MePos { x: number; y: number; accuracyPx: number; heading: number | null }
+
 export default function TripMap({
-  region, rows, candidates, cursor, showZone, onPick,
+  region, rows, candidates, cursor, showZone, onPick, me,
 }: {
   region: RegionDTO;
   rows: PlanRowDTO[];
@@ -50,6 +52,7 @@ export default function TripMap({
   cursor: number;
   showZone: string | null;          // 고른 구역만 밝게. null 이면 전부
   onPick: (kind: "in" | "out", id: string) => void;
+  me: MePos | null;                 // 실시간 내 위치
 }) {
   const zc = useMemo(() => zoneColorMap(region), [region]);
   const labels = useMemo(() => placeLabels(rows, region.vw, region.vh), [rows, region.vw, region.vh]);
@@ -107,6 +110,21 @@ export default function TripMap({
           </g>
         ))}
       </g>
+
+      {/* 내 위치 — 네이버 지도처럼 정확도 원 + 방향 부채꼴 */}
+      {me && (
+        <g className="me" pointerEvents="none">
+          <circle cx={me.x} cy={me.y} r={Math.max(12, me.accuracyPx)}
+            fill="var(--z-global)" opacity={0.16} />
+          <circle className="me-pulse" cx={me.x} cy={me.y} r={13}
+            fill="none" stroke="var(--z-global)" strokeWidth={2} opacity={0.65} />
+          {me.heading != null && (
+            <path d="M -9 -4 L 0 -19 L 9 -4 Z" fill="var(--z-global)" opacity={0.85}
+              transform={`translate(${me.x} ${me.y}) rotate(${me.heading})`} />
+          )}
+          <circle cx={me.x} cy={me.y} r={7.5} fill="var(--z-global)" stroke="#fff" strokeWidth={3} />
+        </g>
+      )}
 
       <g>
         {labels.map((l, i) =>
