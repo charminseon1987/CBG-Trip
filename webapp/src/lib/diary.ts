@@ -16,20 +16,30 @@ import { tripDays } from "./days";
 import { store } from "./store";
 import type { Diary, DiaryStop, Photo, Trip } from "./types";
 
-const MOVING = "이동 중";
-const MAX_IMAGES = 6;
+export const UNKNOWN = "장소 미상";
+const MAX_IMAGES = 8;
+/** 장소를 모르는 사진은 이만큼 시간이 벌어지면 다른 장면으로 나눈다 (분) */
+const SCENE_GAP = 30;
 
-/* ---------- 1) 다녀온 곳 ---------- */
-export function stopsOf(photos: Photo[]): Omit<DiaryStop, "line">[] {
+type Scene = Omit<DiaryStop, "line" | "label" | "bubble">;
+const minutes = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+
+/* ---------- 1) 다녀온 곳 — 사진첩 시간순 ---------- */
+export function stopsOf(photos: Photo[]): Scene[] {
   const sorted = photos.slice().sort((a, b) => a.takenAt.localeCompare(b.takenAt));
-  const out: Omit<DiaryStop, "line">[] = [];
+  const out: (Scene & { lastAt: string })[] = [];
   for (const p of sorted) {
-    const place = p.place?.trim() || MOVING;
+    const place = p.place?.trim() || UNKNOWN;
     const last = out.at(-1);
-    if (last && last.place === place) last.photoIds.push(p.id);
-    else out.push({ time: p.takenAt, place, photoIds: [p.id] });
+    const sameScene =
+      last && last.place === place &&
+      (place !== UNKNOWN || minutes(p.takenAt) - minutes(last.lastAt) <= SCENE_GAP);
+    if (last && sameScene) {
+      last.photoIds.push(p.id);
+      last.lastAt = p.takenAt;
+    } else out.push({ time: p.takenAt, place, photoIds: [p.id], lastAt: p.takenAt });
   }
-  return out;
+  return out.map(({ lastAt: _drop, ...s }) => s);
 }
 
 /* ---------- 2) 모델이 쓰는 부분 ---------- */
@@ -37,7 +47,12 @@ const Written = z.object({
   title: z.string().min(1).max(40),
   mood: z.string().min(1).max(8),
   opening: z.string().min(1).max(300),
-  lines: z.array(z.object({ index: z.number().int(), text: z.string().max(200) })),
+  lines: z.array(z.object({
+    index: z.number().int(),
+    text: z.string().max(200),
+    label: z.string().max(16).optional(),
+    bubble: z.string().max(12).optional(),
+  })),
   closing: z.string().max(200),
   stickers: z.array(z.string().max(8)).max(6),
   cover: z.string().nullable(),
@@ -53,7 +68,7 @@ function imagePart(url: string): ImagePart | null {
 
 async function writeWithModel(
   trip: Trip, day: number | null, date: string,
-  stops: Omit<DiaryStop, "line">[], photos: Photo[], memo: string,
+  stops: Scene[], photos: Photo[], memo: string,
 ) {
   const byId = new Map(photos.map((p) => [p.id, p]));
   const brief = {
@@ -74,7 +89,7 @@ async function writeWithModel(
   const content: (TextPart | ImagePart)[] = [
     { type: "text", text: `오늘의 기록이다. 여행일기를 써 줘.\n${JSON.stringify(brief, null, 1)}` },
   ];
-  // 로컬 모델(qwen3)은 이미지를 못 본다 — Anthropic 일 때만 장소별 첫 사진을 붙인다
+  // 로컬 모델(qwen3)은 이미지를 못 본다 — Anthropic 일 때만 장면별 첫 사진을 붙인다
   if (providerId() === "anthropic") {
     for (const s of stops.slice(0, MAX_IMAGES)) {
       const p = byId.get(s.photoIds[0]);
@@ -100,10 +115,10 @@ const STICKER_HINTS: [RegExp, string][] = [
 ];
 
 function writeByRule(
-  trip: Trip, day: number | null, stops: Omit<DiaryStop, "line">[], photos: Photo[], memo: string,
+  trip: Trip, day: number | null, stops: Scene[], photos: Photo[], memo: string,
 ) {
   const byId = new Map(photos.map((p) => [p.id, p]));
-  const named = stops.filter((s) => s.place !== MOVING);
+  const named = stops.filter((s) => s.place !== UNKNOWN);
   const first = stops[0];
   const last = stops.at(-1)!;
   const stickers = [
@@ -118,9 +133,12 @@ function writeByRule(
       (memo ? ` ${memo}` : ""),
     lines: stops.map((s, index) => {
       const caps = s.photoIds.map((id) => byId.get(id)?.caption).filter(Boolean) as string[];
+      const where = s.place === UNKNOWN ? `${s.time} 무렵` : s.place;
       return {
         index,
-        text: caps.length ? caps.join(" ") : `${s.place}에서 사진 ${s.photoIds.length}장을 남겼다.`,
+        text: caps.length ? caps.join(" ") : `${where}에 사진 ${s.photoIds.length}장을 남겼다.`,
+        label: where,
+        bubble: "",
       };
     }),
     closing: `오늘 남긴 사진은 모두 ${photos.length}장.`,
@@ -141,7 +159,7 @@ export async function makeDiary(tripId: string, date: string, memo = ""): Promis
   const stops = stopsOf(photos);
 
   let by: Diary["by"] = "rule";
-  let w = writeByRule(trip, day, stops, photos, memo);
+  let w: z.infer<typeof Written> = writeByRule(trip, day, stops, photos, memo);
   if (hasModel()) {
     try {
       w = await writeWithModel(trip, day, date, stops, photos, memo);
@@ -153,8 +171,11 @@ export async function makeDiary(tripId: string, date: string, memo = ""): Promis
 
   // 모델이 빠뜨린 줄은 규칙 문장으로 메운다
   const fallback = writeByRule(trip, day, stops, photos, memo).lines;
-  const lineOf = (i: number) =>
-    w.lines.find((l) => l.index === i)?.text?.trim() || fallback[i].text;
+  const lineAt = (i: number) => w.lines.find((l) => l.index === i);
+  const lineOf = (i: number) => lineAt(i)?.text?.trim() || fallback[i].text;
+  // 이름표: 일정 블록 이름이 있으면 그것을 쓴다. 모르면 모델이 사진에서 본 장면 이름, 그것도 없으면 시각.
+  const labelOf = (i: number) =>
+    stops[i].place !== UNKNOWN ? stops[i].place : lineAt(i)?.label?.trim() || fallback[i].label || stops[i].time;
   const ids = new Set(photos.map((p) => p.id));
 
   const diary: Diary = {
@@ -162,7 +183,9 @@ export async function makeDiary(tripId: string, date: string, memo = ""): Promis
     title: w.title.trim(),
     mood: w.mood.trim() || "😊",
     opening: w.opening.trim(),
-    stops: stops.map((s, i) => ({ ...s, line: lineOf(i) })),
+    stops: stops.map((s, i) => ({
+      ...s, line: lineOf(i), label: labelOf(i), bubble: lineAt(i)?.bubble?.trim() ?? "",
+    })),
     closing: w.closing.trim(),
     stickers: w.stickers.filter(Boolean).slice(0, 5),
     cover: w.cover && ids.has(w.cover) ? w.cover : photos[0].id,

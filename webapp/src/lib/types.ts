@@ -141,8 +141,10 @@ export const EXPENSE_CATEGORIES: { id: ExpenseCategory; name: string; color: str
 /** 그날 다녀온 곳 하나. 장소·시각·사진은 사진 데이터에서 결정적으로 뽑고,
     line(한 줄 글)만 모델이 쓴다. */
 export interface DiaryStop {
-  time: string;             // 그 장소 첫 사진 시각 "10:20"
-  place: string;
+  time: string;             // 그 장면 첫 사진 시각 "10:20" — 사진첩 시간순
+  place: string;            // 일정 블록 이름 · 모르면 "장소 미상"
+  label: string;            // 화면에 붙는 이름표 (장소 이름, 또는 사진에 보이는 장면)
+  bubble: string;           // 말풍선 한마디 · 없으면 ""
   photoIds: string[];
   line: string;
 }

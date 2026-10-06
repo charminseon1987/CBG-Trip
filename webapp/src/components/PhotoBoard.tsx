@@ -164,7 +164,7 @@ export default function PhotoBoard({ trip }: { trip: Trip }) {
         })}
       </div>
 
-      <div className="mx-auto max-w-3xl px-4 pt-5">
+      <div className="mx-auto max-w-6xl px-4 pt-5">
         {note && (
           <p role="status" className="mb-4 rounded-xl border border-rule bg-card px-4 py-2 text-sm text-ink-2">
             {note}
@@ -190,7 +190,7 @@ export default function PhotoBoard({ trip }: { trip: Trip }) {
           </>
         ) : (
           sel && (
-            <section className="diary no-print text-center">
+            <section className="diary no-print mx-auto text-center">
               <p className="diary-date">{dayLabel(sel)}</p>
               <h2 className="hand mt-1 text-4xl">오늘의 여행일기</h2>
               {photos.length ? (
@@ -219,7 +219,7 @@ export default function PhotoBoard({ trip }: { trip: Trip }) {
         )}
 
         {/* 사진 */}
-        <section className="no-print mt-10" aria-label="이 날 사진">
+        <section className="no-print mx-auto mt-10 max-w-3xl" aria-label="이 날 사진">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h3 className="text-lg font-bold">{sel ? `${dayLabel(sel)} 사진` : "사진"}</h3>
             <label className={`btn btn-primary cursor-pointer ${busy || !sel ? "pointer-events-none opacity-50" : ""}`}>
