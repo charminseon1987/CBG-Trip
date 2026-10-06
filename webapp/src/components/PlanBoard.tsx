@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import CatFace from "./CatFace";
+import PlaceSheet from "./PlaceSheet";
 import ShowAlertDialog, { useShowAlert } from "./ShowAlert";
 import TripMap, { zoneColorMap } from "./TripMap";
 import { straightTo, useLiveLocation } from "./useLiveLocation";
@@ -87,6 +88,8 @@ export default function PlanBoard({
   const [day, setDay] = useState<ParkDay | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [byZone, setByZone] = useState(false);
+  /* 어느 장소의 설명을 열었는가 — 일정 카드나 지도 픜을 누르면 찜다 */
+  const [placeId, setPlaceId] = useState<string | null>(null);
 
   const region: RegionDTO | null = useMemo(
     () => (plan?.region && map ? { ...plan.region, base: map.base } : null),
@@ -163,23 +166,19 @@ export default function PlanBoard({
     return () => clearTimeout(t);
   }, [toast]);
 
-  if (error) return <Msg>{error}</Msg>;
-  if (!plan) return <Msg>불러오는 중…</Msg>;
+  /* 일정이 없어도 틀은 세운다.
+     예전에는 화면 전체가 안내문 한 줄로 바뀌어서, 이 여행에 무엇이 들어갈
+     자리인지가 보이지 않았다. 세 칸을 그대로 두고 칸마다 빈 상태를 적는다. */
+  if (error) return <EmptyFrame trip={trip} day={day} note={error} tone="bad" />;
+  if (!plan) return <EmptyFrame trip={trip} day={day} note="불러오는 중…" />;
   if (!plan.mapped || !region || !plan.rows || !plan.summary || !plan.itinerary) {
-    return (
-      <Msg>
-        <div className="flex items-center gap-4">
-          <CatFace who="designer" size={72} ring="border-brand" />
-          <p>
-            <b>{trip.place || trip.title}</b>는 아직 지도 데이터가 없습니다. 설계 에이전트가 하루
-            시간표를 짭니다 — 아래 냥이 버튼을 눌러 &ldquo;일정 짜줘&rdquo;라고 해 보세요.
-          </p>
-        </div>
-      </Msg>
-    );
+    return <EmptyFrame trip={trip} day={day} />;
   }
 
   const { rows, summary, candidates = [], itinerary } = plan;
+  if (rows.length === 0) {
+    return <EmptyFrame trip={trip} day={day} mapped />;
+  }
   const move = region.mode === "drive" ? "이동" : "도보";
   const cursor = Math.min(itinerary.cursor, rows.length - 1);
   const next = rows[cursor + 1];
@@ -307,7 +306,13 @@ export default function PlanBoard({
                     aria-label={`${r.name} 순서 바꾸기`}
                   >⠿</span>
                   <span className="font-mono text-sm font-bold">{r.at}</span>
-                  <b className="flex-1 truncate">{r.name}</b>
+                  {/* 이름을 누르면 그곳의 특징·사진·역사가 뜬다 */}
+                  <button
+                    className="flex-1 truncate text-left font-bold underline decoration-rule
+                               decoration-dotted underline-offset-4 hover:decoration-brand"
+                    title={`${r.name} 설명 보기`}
+                    onClick={() => setPlaceId(r.id)}
+                  >{r.name}</button>
                   <span className="flex gap-0.5">
                     <button className="icb" title="위로" disabled={busy || i === 0}
                       onClick={() => propose({ action: "move", from: i, to: i - 1 })}>▲</button>
@@ -331,39 +336,7 @@ export default function PlanBoard({
 
       {/* ───────── 지도 ───────── */}
       <section className="order-2 flex h-[58vh] shrink-0 flex-col overflow-hidden rounded-2xl border border-rule bg-card p-2 lg:order-none lg:h-auto lg:min-h-0 lg:shrink">
-        {/* 그날의 날짜 · 날씨 · 운영시간 */}
-        <div className="flex flex-none flex-wrap items-center gap-x-3 gap-y-1 px-1 pb-2 text-xs">
-          <b className="text-sm">
-            {day?.date ?? trip.date}
-            {day?.weekday ? ` ${day.weekday}` : ""}
-          </b>
-          {day?.weather && (
-            <span className="inline-flex items-center gap-1"
-              title={`${day.weather.note ?? ""} (코드 ${day.weather.code})`}>
-              <span className="text-base leading-none">{day.weather.icon}</span>
-              {day.weather.label && <span>{day.weather.label}</span>}
-              <span className="font-mono font-bold">
-                {day.weather.isToday && day.weather.temp
-                  ? `${day.weather.temp}°C`
-                  : day.weather.low != null && day.weather.high != null
-                    ? `${day.weather.low}° / ${day.weather.high}°`
-                    : "—"}
-              </span>
-              <span className="text-[12.5px] text-muted">
-                {day.weather.from === "kma" ? "기상청" : "에버랜드"}
-              </span>
-            </span>
-          )}
-          {day?.hours && (
-            <span className="font-mono text-muted">
-              운영 {day.hours.open}~{day.hours.close}
-            </span>
-          )}
-          {day?.seasonGrade && (
-            <span className="chip" style={{ color: "var(--z-amer)" }}>시즌 {day.seasonGrade}</span>
-          )}
-          {day?.error && <span className="text-muted">날씨 정보를 받지 못했습니다</span>}
-        </div>
+        <DayStrip trip={trip} day={day} />
 
         <div className="flex flex-none flex-wrap items-center gap-1.5 px-1 pb-2">
           <button className={`chip ${zone === null ? "chip-solid" : ""}`}
@@ -383,9 +356,10 @@ export default function PlanBoard({
           <TripMap
             region={region} rows={rows} candidates={candidates} cursor={cursor}
             showZone={zone} me={live.me}
-            onPick={(kind, id) =>
-              propose(kind === "in" ? { action: "remove", id } : { action: "add", id })
-            }
+            /* 예전엔 한 번 누르면 그자리에서 빼거나 넣었다.
+               지우는 일을 한 번의 클릭에 걸어 듐 수 는 없으니,
+               누르면 설명을 열고 넣기·바기는 그 안에서 골라도 리다. */
+            onPick={(_kind, id) => setPlaceId(id)}
           />
 
           {/* 지도 오른쪽 아래 — 일정 추가 */}
@@ -427,7 +401,7 @@ export default function PlanBoard({
         </div>
 
         <p className="flex-none px-2 pt-2 text-[12.5px] leading-snug text-muted">
-          핀을 누르면 일정에서 빼고, 속이 빈 동그라미를 누르면 넣습니다. {region.source}
+          핀이나 동그라미를 누르면 그곳의 특징·사진·역사가 뜨고, 거기서 일정에 넣거나 뺄 수 있습니다. {region.source}
         </p>
       </section>
 
@@ -543,6 +517,28 @@ export default function PlanBoard({
         )}
       </section>
 
+      {/* ───────── 장소 설명 — 특징 · 사진 · 역사 ───────── */}
+      {placeId && (
+        <PlaceSheet
+          tripId={trip.id}
+          placeId={placeId}
+          color={
+            zc[(rows.find((r) => r.id === placeId) ?? candidates.find((c) => c.id === placeId))?.zoneId ?? ""] ??
+            "var(--brand)"
+          }
+          inPlan={rows.some((r) => r.id === placeId)}
+          busy={busy}
+          onClose={() => setPlaceId(null)}
+          onAdd={(id) => { setPlaceId(null); propose({ action: "add", id }); }}
+          onRemove={(id) => { setPlaceId(null); propose({ action: "remove", id }); }}
+          onGuide={(id) => {
+            /* 그곳이 "다음 목적지" 가 되게 한 칸 앞에 선다 */
+            const i = rows.findIndex((r) => r.id === id);
+            if (i > 0) setCursor(i - 1);
+          }}
+        />
+      )}
+
       <ShowAlertDialog
         due={show.due}
         onClose={show.dismiss}
@@ -589,6 +585,130 @@ export default function PlanBoard({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* 날짜 · 날씨 · 운영시간 한 줄 — 일정이 있든 없든 같은 자리에 선다 */
+function DayStrip({ trip, day }: { trip: Trip; day: ParkDay | null }) {
+  return (
+          <div className="flex flex-none flex-wrap items-center gap-x-3 gap-y-1 px-1 pb-2 text-xs">
+            <b className="text-sm">
+              {day?.date ?? trip.date}
+              {day?.weekday ? ` ${day.weekday}` : ""}
+            </b>
+            {day?.weather && (
+              <span className="inline-flex items-center gap-1"
+                title={`${day.weather.note ?? ""} (코드 ${day.weather.code})`}>
+                <span className="text-base leading-none">{day.weather.icon}</span>
+                {day.weather.label && <span>{day.weather.label}</span>}
+                <span className="font-mono font-bold">
+                  {day.weather.isToday && day.weather.temp
+                    ? `${day.weather.temp}°C`
+                    : day.weather.low != null && day.weather.high != null
+                      ? `${day.weather.low}° / ${day.weather.high}°`
+                      : "—"}
+                </span>
+                <span className="text-[12.5px] text-muted">
+                  {day.weather.from === "kma" ? "기상청" : "에버랜드"}
+                </span>
+              </span>
+            )}
+            {day?.hours && (
+              <span className="font-mono text-muted">
+                운영 {day.hours.open}~{day.hours.close}
+              </span>
+            )}
+            {day?.seasonGrade && (
+              <span className="chip" style={{ color: "var(--z-amer)" }}>시즌 {day.seasonGrade}</span>
+            )}
+            {day?.error && <span className="text-muted">날씨 정보를 받지 못했습니다</span>}
+          </div>
+  );
+}
+
+/* 일정이 아직 없는 여행의 화면.
+   본 화면과 같은 세 칸 틀을 세우고, 칸마다 무엇이 들어올 자리인지 적는다.
+   (지도가 없는 지역이면 가운데 칸에 설계 에이전트를 부르는 안내가 선다) */
+function EmptyFrame({
+  trip, day, note, tone, mapped,
+}: { trip: Trip; day: ParkDay | null; note?: string; tone?: "bad"; mapped?: boolean }) {
+  const slots = [
+    { k: "일정", v: "0개" },
+    { k: "이동 거리", v: "— km" },
+    { k: "이동 시간", v: "—분" },
+    { k: "끝나는 시각", v: "—" },
+  ];
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3 pb-28 lg:grid lg:grid-cols-[3.4fr_6.4fr_3.2fr] lg:overflow-hidden lg:pb-3">
+      {/* ───────── 오늘의 일정 ───────── */}
+      <section className="order-3 shrink-0 lg:order-none lg:min-h-0 lg:shrink lg:overflow-y-auto lg:pr-1">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-lg font-bold">오늘의 일정</h2>
+          <button className="btn" disabled title="일정이 들어오면 쓸 수 있습니다">동선 최적화</button>
+        </div>
+        <p className="mt-1 text-[12.5px] text-muted">
+          일정이 들어오면 카드를 끌어 순서를 바꿀 수 있습니다.
+        </p>
+        <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+          {slots.map((s) => <Fact key={s.k} k={s.k} v={s.v} />)}
+        </dl>
+        <div className="mt-4 flex flex-col gap-2">
+          {[0, 1, 2].map((i) => (
+            <div key={i}
+              className="rounded-xl border border-dashed border-rule bg-card/40 p-3"
+              style={{ borderLeft: "6px solid var(--rule)" }}>
+              <div className="flex items-baseline gap-2">
+                <span className="select-none text-muted">⠿</span>
+                <span className="font-mono text-sm text-muted">--:--</span>
+                <b className="flex-1 text-muted">{i + 1}번째 일정이 들어올 자리</b>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ───────── 지도 ───────── */}
+      <section className="order-2 flex h-[58vh] shrink-0 flex-col overflow-hidden rounded-2xl border border-rule bg-card p-2 lg:order-none lg:h-auto lg:min-h-0 lg:shrink">
+        <DayStrip trip={trip} day={day} />
+        <div className="relative min-h-0 flex-1 rounded-xl border border-dashed border-rule bg-paper">
+          <div className="absolute inset-0 grid place-content-center px-6">
+            <div className="mx-auto flex max-w-md items-center gap-4">
+              <CatFace who="designer" size={72} ring="border-brand" />
+              <div>
+                <p className={`text-sm ${tone === "bad" ? "font-bold text-rose" : "text-ink-2"}`}>
+                  {note ?? (mapped
+                    ? <><b>{trip.place || trip.title}</b> 일정이 아직 비어 있습니다. 아래 냥이 버튼을 눌러 &ldquo;일정 짜줘&rdquo;라고 하거나, 지도에서 갈 곳을 눌러 넣으세요.</>
+                    : <><b>{trip.place || trip.title}</b>는 아직 지도 데이터가 없습니다. 설계 에이전트가 하루 시간표를 짭니다 — 아래 냥이 버튼을 눌러 &ldquo;일정 짜줘&rdquo;라고 해 보세요.</>)}
+                </p>
+                <p className="mt-2 text-[12.5px] text-muted">지도가 들어올 자리입니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p className="flex-none px-2 pt-2 text-[12.5px] text-muted">
+          일정이 생기면 여기에 구역별 색으로 핀과 이동 경로가 그려집니다.
+        </p>
+      </section>
+
+      {/* ───────── 길안내 ───────── */}
+      <section className="order-1 shrink-0 lg:order-none lg:min-h-0 lg:shrink lg:overflow-y-auto">
+        <h2 className="text-lg font-bold">길안내</h2>
+        <p className="font-mono text-xs text-muted">0 / 0</p>
+        <div className="mt-3 rounded-2xl border border-dashed border-rule bg-card/40 p-4">
+          <div className="flex items-center gap-3">
+            <span className="grid h-11 w-11 flex-none place-content-center rounded-full bg-paper text-xl text-muted">→</span>
+            <div className="min-w-0">
+              <p className="text-lg font-bold text-muted">다음 목적지</p>
+              <p className="font-mono text-xs text-muted">— m · —분 · --:-- 도착</p>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-ink-2">
+            첫 일정이 정해지면 걸어갈 거리와 돌 지점을 여기에 적고, 내 위치를 켜면 남은 거리를 실시간으로 알려 줍니다.
+          </p>
+          <button className="btn mt-3 w-full" disabled>안내 시작 — 일정이 필요합니다</button>
+        </div>
+      </section>
     </div>
   );
 }

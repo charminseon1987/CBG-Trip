@@ -28,5 +28,8 @@ export async function POST(
   if (!g.ok) return g.res;
 
   const r = await delegate(id, { tripId: p.data.tripId }, p.data.task);
-  return ok({ agent: r.agent, text: r.text, calls: r.calls, usage: r.usage });
+  return ok({
+    agent: r.agent, text: r.text, calls: r.calls,
+    tier: r.tier, model: r.model, provider: r.provider, ms: r.ms, usage: r.usage,
+  });
 }

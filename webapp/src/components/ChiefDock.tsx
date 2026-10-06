@@ -4,10 +4,12 @@ import { useRef, useState } from "react";
 import CatFace from "./CatFace";
 import { chiefStream } from "@/lib/api";
 
+interface Evidence { tool: string; output: unknown }
+
 type Msg =
   | { role: "me"; text: string }
   | { role: "sys"; text: string }
-  | { role: "bot"; text: string; who?: string };
+  | { role: "bot"; text: string; who?: string; evidence?: Evidence[]; model?: string };
 
 export default function ChiefDock({
   tripId, onChanged,
@@ -61,11 +63,16 @@ export default function ChiefDock({
           answerStarted = true;
         } else if (ev.type === "report") {
           const t = String(ev.text ?? "").trim();
-          const calls = Array.isArray(ev.calls) ? ev.calls.length : 0;
+          const calls = (Array.isArray(ev.calls) ? ev.calls : []) as Evidence[];
           push({
             role: "bot",
             who: String(ev.agent ?? lastAgent),
-            text: t || `도구 ${calls}개를 돌려 결과를 올렸습니다.`,
+            /* 도구를 안 쓴 답은 서버가 버리고 빈 문자열로 온다 — 그 사실을 그대로 말한다 */
+            text: t || (calls.length
+              ? `도구 ${calls.length}개를 돌렸습니다. 아래 결과를 보세요.`
+              : "도구를 쓰지 않아 답을 버렸습니다. 아래 화면의 숫자를 봐 주세요."),
+            evidence: calls,
+            model: ev.model ? String(ev.model) : undefined,
           });
         } else if (ev.type === "error") {
           push({ role: "bot", text: `문제가 생겼습니다: ${ev.message}` });
@@ -117,7 +124,26 @@ export default function ChiefDock({
           ) : (
             <div key={i} className="flex max-w-[92%] items-start gap-2 self-start">
               <CatFace who={m.who ?? "chief"} size={28} />
-              <p className="whitespace-pre-wrap rounded-2xl bg-paper px-3 py-2">{m.text}</p>
+              <div className="min-w-0">
+                <p className="whitespace-pre-wrap rounded-2xl bg-paper px-3 py-2">{m.text}</p>
+                {/* 모델이 숫자를 틀리게 옮기는 일이 있다. 도구가 준 값을 함께 둬서
+                    사용자가 바로 대조할 수 있게 한다. */}
+                {m.evidence && m.evidence.length > 0 && (
+                  <details className="mt-1 rounded-xl border border-rule bg-card px-3 py-1.5">
+                    <summary className="cursor-pointer text-[12.5px] text-muted">
+                      도구가 준 실제 값 {m.model && <span className="font-mono">· {m.model}</span>}
+                    </summary>
+                    {m.evidence.map((e, k) => (
+                      <div key={k} className="mt-1">
+                        <p className="font-mono text-[12.5px] font-bold text-brand">{e.tool}</p>
+                        <pre className="overflow-x-auto whitespace-pre-wrap break-all text-[12.5px] text-ink-2">
+                          {JSON.stringify(e.output, null, 1)}
+                        </pre>
+                      </div>
+                    ))}
+                  </details>
+                )}
+              </div>
             </div>
           ),
         )}

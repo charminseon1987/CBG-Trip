@@ -70,7 +70,10 @@ export async function delegate(
   id: string, ctx: AgentContext, task: string,
 ): Promise<RunResult> {
   const agent: AgentDef | undefined = AGENTS[id];
-  if (!agent) return { agent: id, text: "그런 담당이 없습니다.", calls: [] };
+  if (!agent) {
+    return { agent: id, text: "그런 담당이 없습니다.", calls: [],
+             tier: "quick" as const, model: "-", provider: "-", ms: 0 };
+  }
   return runAgent(agent, ctx, task);
 }
 
@@ -96,7 +99,7 @@ export function speak(
 ) {
   const chief: AgentDef = {
     id: "chief", name: "총괄", blurb: "", prompt: CHIEF, tier: "quick",
-    tools: () => ({}), maxSteps: 1,
+    tools: () => ({}), maxSteps: 1, requiresTool: false,
   };
   const body =
     `[오늘 여행 상황]\n${JSON.stringify(facts)}\n\n` +

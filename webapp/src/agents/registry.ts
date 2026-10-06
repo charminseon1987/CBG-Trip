@@ -3,6 +3,7 @@
    총괄은 여기에 없다. 총괄은 이 명부를 보고 고르는 쪽이다. (chief.ts)
    ============================================================ */
 import type { AgentDef } from "./harness";
+import { modelName, providerId } from "./provider";
 import { ALBUM, DESIGNER, LEDGER, PASS, PLAN } from "./prompts";
 import { albumTools, designerTools, ledgerTools } from "./tools/misc";
 import { passTools } from "./tools/pass";
@@ -17,6 +18,8 @@ export const AGENTS: Record<string, AgentDef> = {
     tier: "quick",
     tools: planTools,
     maxSteps: 6,
+    /* 무엇을 물어도 먼저 이걸 읽고 시작한다 */
+    firstTool: "list",
   },
   designer: {
     id: "designer",
@@ -26,6 +29,8 @@ export const AGENTS: Record<string, AgentDef> = {
     tier: "default",
     tools: designerTools,
     maxSteps: 4,
+    /* 무엇을 물어도 먼저 이걸 읽고 시작한다 */
+    firstTool: "trip_brief",
   },
   pass: {
     id: "pass",
@@ -35,6 +40,8 @@ export const AGENTS: Record<string, AgentDef> = {
     tier: "quick",
     tools: passTools,
     maxSteps: 5,
+    /* 무엇을 물어도 먼저 이걸 읽고 시작한다 */
+    firstTool: "trip_context",
   },
   album: {
     id: "album",
@@ -44,6 +51,8 @@ export const AGENTS: Record<string, AgentDef> = {
     tier: "quick",
     tools: albumTools,
     maxSteps: 4,
+    /* 무엇을 물어도 먼저 이걸 읽고 시작한다 */
+    firstTool: "summary",
   },
   ledger: {
     id: "ledger",
@@ -53,6 +62,8 @@ export const AGENTS: Record<string, AgentDef> = {
     tier: "quick",
     tools: ledgerTools,
     maxSteps: 4,
+    /* 무엇을 물어도 먼저 이걸 읽고 시작한다 */
+    firstTool: "summary",
   },
 };
 
@@ -64,5 +75,9 @@ export const agentList = () =>
     name: a.name,
     blurb: a.blurb,
     tier: a.tier,
+    /* 그 등급이 지금 어느 모델로 가는지 — 설정이 말대로 되어 있는지 눈으로 본다 */
+    model: modelName(a.tier),
+    provider: providerId(),
+    maxSteps: a.maxSteps ?? 6,
     tools: Object.keys(a.tools({ tripId: "preview" })),
   }));

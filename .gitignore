@@ -22,3 +22,6 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# 브라우저 자동화 도구가 남기는 캡쳐·스냅샷
+.playwright-mcp/

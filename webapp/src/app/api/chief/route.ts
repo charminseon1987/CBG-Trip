@@ -46,7 +46,10 @@ export async function POST(req: Request) {
           send({ type: "handoff", agent: id, name: AGENTS[id]?.name ?? id });
           const r = await delegate(id, { tripId }, message);
           reports.push(r);
-          send({ type: "report", agent: id, text: r.text, calls: r.calls });
+          send({
+            type: "report", agent: id, text: r.text, calls: r.calls,
+            tier: r.tier, model: r.model, ms: r.ms,
+          });
         }
 
         if (!hasKey()) {

@@ -26,11 +26,34 @@ const anthropic = createAnthropic({
     : undefined,
 });
 
+/* AGENT_DEBUG=1 이면 모델에 실제로 무엇을 보냈는지 한 줄로 남긴다.
+   "도구를 반드시 부르게 했는데 왜 안 부르나" 를 눈으로 확인하려면
+   하네스가 의도한 값이 아니라 선로를 타고 나간 값을 봐야 한다. */
+const DEBUG = process.env.AGENT_DEBUG === "1";
+
+const traced: typeof fetch = async (input, init) => {
+  if (DEBUG && init?.body) {
+    try {
+      const b = JSON.parse(String(init.body)) as {
+        model?: string; tool_choice?: unknown; tools?: { function?: { name?: string } }[];
+        max_tokens?: number;
+      };
+      console.log(
+        `[model→] ${b.model} tool_choice=${JSON.stringify(b.tool_choice) ?? "(없음)"}` +
+        ` tools=${(b.tools ?? []).map((t) => t.function?.name).join(",") || "(없음)"}` +
+        ` max_tokens=${b.max_tokens}`,
+      );
+    } catch { /* 본문이 JSON 이 아니면 넘어간다 */ }
+  }
+  return fetch(input, init);
+};
+
 /* Ollama 는 OpenAI 호환 엔드포인트를 연다. 키는 아무 값이나 있으면 된다. */
 const ollama = createOpenAICompatible({
   name: "ollama",
   baseURL: OLLAMA_URL,
   apiKey: "ollama",
+  fetch: traced,
 });
 
 const MODELS: Record<ProviderId, Record<Tier, string>> = {

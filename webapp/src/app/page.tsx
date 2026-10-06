@@ -82,8 +82,11 @@ export default async function Home() {
               <CatFace who={a.id} size={30} />
               <span className="w-12 font-bold">{a.name}</span>
               <span className="flex-1 text-sm text-ink-2">{a.blurb}</span>
-              <span className="font-mono text-xs text-muted">{a.tier}</span>
-              <span className="font-mono text-xs text-muted">{a.tools.join(" · ")}</span>
+              {/* 난이도별로 다른 모델이 붙는다 — 어느 모델인지 눈으로 보이게 */}
+              <span className="chip" style={{ color: a.tier === "default" ? "var(--z-magic)" : "var(--z-global)" }}>
+                {a.tier === "default" ? "어려움" : "가벼움"} · {a.model}
+              </span>
+              <span className="font-mono text-xs text-muted">도구 {a.tools.length}개</span>
             </div>
           ))}
         </div>

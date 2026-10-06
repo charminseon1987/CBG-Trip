@@ -92,7 +92,7 @@ export default function TripMap({
         {candidates.map((c) => (
           <g key={`g-${c.id}`} className="pin pin-ghost" opacity={dim(c.zoneId)}
             onClick={() => onPick("out", c.id)}>
-            <title>{`${c.name} — 누르면 일정에 넣습니다`}</title>
+            <title>{`${c.name} — 누르면 설명을 봅니다`}</title>
             <circle cx={c.x} cy={c.y} r={7} fill="#fff" stroke={zc[c.zoneId] ?? "var(--muted)"} strokeWidth={2.5} />
             <circle cx={c.x} cy={c.y} r={2.4} fill={zc[c.zoneId] ?? "var(--muted)"} />
           </g>
@@ -103,7 +103,7 @@ export default function TripMap({
       <g>
         {rows.map((r, i) => (
           <g key={`p-${r.id}`} className="pin" opacity={dim(r.zoneId)} onClick={() => onPick("in", r.id)}>
-            <title>{`${r.at} ${r.name} — 누르면 일정에서 뺍니다`}</title>
+            <title>{`${r.at} ${r.name} — 누르면 설명을 봅니다`}</title>
             {i === cursor && <circle cx={r.x} cy={r.y} r={15} fill={zc[r.zoneId] ?? "var(--brand)"} opacity={0.25} />}
             <circle className="pin-ring" cx={r.x} cy={r.y} r={11} fill={zc[r.zoneId] ?? "var(--brand)"} />
             <text className="pin-num" x={r.x} y={r.y + 3.7} textAnchor="middle">{r.no}</text>

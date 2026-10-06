@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { fail, notFound, ok, parse } from "@/lib/http";
 import { store } from "@/lib/store";
-import { currentUser } from "@/lib/auth";
+import { guardTrip } from "@/lib/guard";
 
 export const dynamic = "force-dynamic";
 
@@ -19,14 +19,14 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, { params }: Ctx) {
   const { id } = await params;
-  const me = await currentUser();
-  if (store.canSee && !(await store.canSee(id, me))) return notFound("여행");
-  const trip = await store.getTrip(id);
-  return trip ? ok({ trip }) : notFound("여행");
+  const g = await guardTrip(id);
+  return g.ok ? ok({ trip: g.trip }) : g.res;
 }
 
 export async function PATCH(req: Request, { params }: Ctx) {
   const { id } = await params;
+  const g = await guardTrip(id);          // 남의 여행을 고치지 못하게
+  if (!g.ok) return g.res;
   const p = await parse(req, Patch);
   if (!p.ok) return p.res;
   const trip = await store.updateTrip(id, p.data);
@@ -35,6 +35,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
 export async function DELETE(_req: Request, { params }: Ctx) {
   const { id } = await params;
+  const g = await guardTrip(id);          // 남의 여행을 지우지 못하게
+  if (!g.ok) return g.res;
   const gone = await store.deleteTrip(id);
   return gone ? ok({ deleted: id }) : fail("not_deletable", "기본 여행이거나 없는 여행입니다.", 409);
 }
