@@ -4,6 +4,7 @@ import { z } from "zod";
 import { compute, hm, toMin } from "@/lib/itinerary";
 import { getRegion } from "@/lib/regions";
 import { store } from "@/lib/store";
+import { makeDiary } from "@/lib/diary";
 import { EXPENSE_CATEGORIES } from "@/lib/types";
 import type { AgentContext } from "../harness";
 
@@ -26,19 +27,24 @@ async function whereAt(tripId: string, time: string): Promise<string | null> {
 export function albumTools({ tripId }: AgentContext) {
   return {
     summary: tool({
-      description: "저장된 사진 수와 일정 블록별 장수, 캡션이 있는 장수.",
+      description: "저장된 사진 수, 날짜별·일정 블록별 장수, 캡션이 있는 장수, 일기가 있는 날짜.",
       inputSchema: z.object({}),
       execute: async () => {
         const photos = await store.listPhotos(tripId);
+        const byDate: Record<string, number> = {};
         const by: Record<string, number> = {};
         for (const p of photos) {
+          byDate[p.date] = (byDate[p.date] ?? 0) + 1;
           const k = p.place ?? "분류 전";
           by[k] = (by[k] ?? 0) + 1;
         }
+        const diaries = await store.listDiaries(tripId);
         return {
           total: photos.length,
           captioned: photos.filter((p) => p.caption).length,
+          by_date: byDate,
           by_block: by,
+          diary_dates: diaries.map((d) => d.date),
         };
       },
     }),
@@ -51,7 +57,7 @@ export function albumTools({ tripId }: AgentContext) {
         return {
           missing: photos
             .filter((p) => !p.caption)
-            .map((p) => ({ id: p.id, at: p.takenAt, place: p.place })),
+            .map((p) => ({ id: p.id, date: p.date, at: p.takenAt, place: p.place })),
         };
       },
     }),
@@ -63,6 +69,21 @@ export function albumTools({ tripId }: AgentContext) {
         const p = await store.updatePhoto(tripId, id, { caption });
         if (!p) return { ok: false, message: "그 사진을 찾지 못했습니다." };
         return { ok: true, id, caption };
+      },
+    }),
+
+    write_diary: tool({
+      description:
+        "그날 사진으로 손글씨 여행일기를 쓴다. 사진 탭의 그 날짜에 바로 나타난다. " +
+        "date 를 모르면 summary 의 by_date 에서 가장 최근 날짜를 쓴다.",
+      inputSchema: z.object({
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("YYYY-MM-DD"),
+        memo: z.string().max(300).optional().describe("사용자가 말한 날씨·있었던 일. 없으면 비운다"),
+      }),
+      execute: async ({ date, memo }) => {
+        const r = await makeDiary(tripId, date, memo ?? "");
+        if ("error" in r) return { ok: false, message: r.error };
+        return { ok: true, date: r.date, title: r.title, places: r.stops.map((s) => s.place), by: r.by };
       },
     }),
   };

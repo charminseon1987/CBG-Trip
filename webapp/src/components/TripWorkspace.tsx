@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AlbumBoard from "./AlbumBoard";
 import LedgerBoard from "./LedgerBoard";
 import ChiefDock from "./ChiefDock";
 import PlanBoard, { type PlanPayload } from "./PlanBoard";
+import PhotoBoard from "./PhotoBoard";
 import { api } from "@/lib/api";
 import type { Trip } from "@/lib/types";
 
@@ -18,7 +18,7 @@ export interface MapInfo {
 
 const TABS = [
   { id: "plan", label: "일정" },
-  { id: "album", label: "앨범 · 사진" },
+  { id: "album", label: "사진 · 일기" },
   { id: "ledger", label: "가계부" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
@@ -62,7 +62,7 @@ export default function TripWorkspace({ trip, map }: { trip: Trip; map: MapInfo 
         {tab === "plan" && (
           <PlanBoard trip={trip} map={map} plan={plan} error={err} onChanged={reload} />
         )}
-        {tab === "album" && <AlbumBoard trip={trip} />}
+        {tab === "album" && <PhotoBoard trip={trip} />}
         {tab === "ledger" && <LedgerBoard trip={trip} />}
       </main>
 

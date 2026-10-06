@@ -110,6 +110,7 @@ export interface Photo {
   id: string;
   tripId: string;
   url: string;              // 지금은 외부 URL 또는 data URI. 스토리지를 붙이면 그 키.
+  date: string;             // "2026-10-09" — 사진 탭은 이 날짜로 나눠 보여 준다
   takenAt: string;          // "13:40"
   caption: string;
   place: string | null;     // 그 시각에 있던 일정 블록
@@ -135,3 +136,28 @@ export const EXPENSE_CATEGORIES: { id: ExpenseCategory; name: string; color: str
   { id: "gift", name: "기념품", color: "#D9607A" },
   { id: "etc", name: "기타", color: "#8E8295" },
 ];
+
+/* ---------- 여행일기 ---------- */
+/** 그날 다녀온 곳 하나. 장소·시각·사진은 사진 데이터에서 결정적으로 뽑고,
+    line(한 줄 글)만 모델이 쓴다. */
+export interface DiaryStop {
+  time: string;             // 그 장소 첫 사진 시각 "10:20"
+  place: string;
+  photoIds: string[];
+  line: string;
+}
+
+export interface Diary {
+  tripId: string;
+  date: string;             // "2026-10-09"
+  title: string;
+  mood: string;             // 이모지 하나
+  opening: string;
+  stops: DiaryStop[];
+  closing: string;
+  stickers: string[];       // 이모지 스티커
+  cover: string | null;     // 표지 사진 id
+  memo: string;             // 사용자가 남긴 한 줄 메모 (날씨·있었던 일)
+  by: "model" | "rule";     // 모델이 썼는지, 모델 없이 규칙으로 채웠는지
+  madeAt: string;
+}

@@ -33,7 +33,7 @@ export function keywordRoute(q: string, hasMap: boolean): Route {
   const out: Route["agents"] = [];
   if (/패스|정기권|연간|종일권|입장권|큐패스|플랜잇|자유이용권|회원권/.test(m)) out.push("pass");
   if (!out.length && /원|돈|지출|가계부|비용|얼마|샀|결제|예산/.test(m)) out.push("ledger");
-  if (/사진|앨범|찍|캡션/.test(m)) out.push("album");
+  if (/사진|앨범|찍|캡션|일기|다이어리/.test(m)) out.push("album");
   if (/짜줘|추천|설계|코스|다시짜/.test(m) && !hasMap) out.push("designer");
   if (!out.length && /일정|동선|경로|다음|어디|빼|넣|추가|최적|거리|분|시간|타|놀이기구|공연/.test(m)) {
     out.push(hasMap ? "plan" : "designer");
@@ -53,7 +53,7 @@ export async function classify(q: string, hasMap: boolean): Promise<Route> {
       schema: Route,
       system:
         "요청을 처리할 담당을 고른다. plan(지도 기반 일정·경로), designer(지도 없는 여행의 시간표 설계), " +
-        "album(사진), ledger(이미 쓴 돈의 기록·가계부), pass(입장권·정기권·패스권을 뭘 살지 고르는 문제). 인사·잡담·사용법처럼 담당이 필요 없으면 agents 를 빈 배열로 둔다. " +
+        "album(사진·여행일기), ledger(이미 쓴 돈의 기록·가계부), pass(입장권·정기권·패스권을 뭘 살지 고르는 문제). 인사·잡담·사용법처럼 담당이 필요 없으면 agents 를 빈 배열로 둔다. " +
         (hasMap
           ? "이 여행은 지도 데이터가 있다 — 일정 관련은 plan 이다."
           : "이 여행은 지도 데이터가 없다 — 일정 관련은 designer 다."),

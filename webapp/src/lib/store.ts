@@ -11,7 +11,7 @@ import { randomUUID } from "node:crypto";
 import { defaultItinerary } from "./itinerary";
 import { SqlStore } from "./store-sql";
 import { getRegion, guessRegion } from "./regions";
-import type { Expense, Itinerary, Photo, Trip } from "./types";
+import type { Diary, Expense, Itinerary, Photo, Trip } from "./types";
 
 export interface Store {
   listTrips(viewer?: { id: string; role: string } | null): Promise<Trip[]>;
@@ -26,8 +26,12 @@ export interface Store {
 
   listPhotos(tripId: string): Promise<Photo[]>;
   addPhoto(tripId: string, p: Omit<Photo, "id" | "tripId">): Promise<Photo>;
-  updatePhoto(tripId: string, id: string, patch: Partial<Photo>): Promise<Photo | null>;
+  updatePhoto(tripId: string, id: string, patch: Partial<Pick<Photo, "caption" | "date" | "takenAt" | "place">>): Promise<Photo | null>;
   deletePhoto(tripId: string, id: string): Promise<boolean>;
+
+  getDiary(tripId: string, date: string): Promise<Diary | null>;
+  listDiaries(tripId: string): Promise<Diary[]>;
+  putDiary(d: Diary): Promise<Diary>;
 
   listExpenses(tripId: string): Promise<Expense[]>;
   addExpense(tripId: string, e: Omit<Expense, "id" | "tripId">): Promise<Expense>;
@@ -64,6 +68,7 @@ class MemoryStore implements Store {
   private itineraries = new Map<string, Itinerary>();
   private photos = new Map<string, Photo[]>();
   private expenses = new Map<string, Expense[]>();
+  private diaries = new Map<string, Diary>();   // key: `${tripId}:${date}`
 
   async listTrips(viewer?: { id: string; role: string } | null) {
     const all = [...this.trips.values()].sort((a, b) => a.date.localeCompare(b.date));
@@ -104,6 +109,7 @@ class MemoryStore implements Store {
     this.itineraries.delete(id);
     this.photos.delete(id);
     this.expenses.delete(id);
+    for (const k of [...this.diaries.keys()]) if (k.startsWith(`${id}:`)) this.diaries.delete(k);
     return true;
   }
 
@@ -128,24 +134,41 @@ class MemoryStore implements Store {
   }
 
   async listPhotos(tripId: string) {
-    return this.photos.get(tripId) ?? [];
+    return (this.photos.get(tripId) ?? [])
+      .slice()
+      .sort((a, b) => a.date.localeCompare(b.date) || a.takenAt.localeCompare(b.takenAt));
   }
   async addPhoto(tripId: string, p: Omit<Photo, "id" | "tripId">) {
     const photo: Photo = { ...p, id: randomUUID().slice(0, 8), tripId };
     this.photos.set(tripId, [...(this.photos.get(tripId) ?? []), photo]);
     return photo;
   }
-  async updatePhoto(tripId: string, id: string, patch: Partial<Photo>) {
-    const hit = (this.photos.get(tripId) ?? []).find((p) => p.id === id);
-    if (!hit) return null;
-    Object.assign(hit, patch, { id, tripId });
-    return hit;
+  async updatePhoto(tripId: string, id: string, patch: Partial<Pick<Photo, "caption" | "date" | "takenAt" | "place">>) {
+    const list = this.photos.get(tripId) ?? [];
+    const i = list.findIndex((p) => p.id === id);
+    if (i < 0) return null;
+    const next = { ...list[i], ...patch, id, tripId };
+    this.photos.set(tripId, list.map((p, j) => (j === i ? next : p)));
+    return next;
   }
   async deletePhoto(tripId: string, id: string) {
     const list = this.photos.get(tripId) ?? [];
     const next = list.filter((p) => p.id !== id);
     this.photos.set(tripId, next);
     return next.length !== list.length;
+  }
+
+  async getDiary(tripId: string, date: string) {
+    return this.diaries.get(`${tripId}:${date}`) ?? null;
+  }
+  async listDiaries(tripId: string) {
+    return [...this.diaries.values()]
+      .filter((d) => d.tripId === tripId)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
+  async putDiary(d: Diary) {
+    this.diaries.set(`${d.tripId}:${d.date}`, d);
+    return d;
   }
 
   async listExpenses(tripId: string) {

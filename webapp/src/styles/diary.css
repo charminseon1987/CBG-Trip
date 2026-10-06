@@ -1,0 +1,123 @@
+/* ============================================================
+   여행일기 한 쪽 — 모눈 일기장 위에 손글씨, 마스킹테이프, 폴라로이드.
+   글꼴: 나눔손글씨 펜 (layout.tsx 에서 불러온다)
+   ============================================================ */
+:root {
+  --diary-paper: #FFFDFB;
+  --diary-grid: #F6DCE8;
+  --diary-ink: #3A2C4A;
+  --diary-pen: #C21F63;
+  --font-hand: "Nanum Pen Script", "Gaegu", cursive;
+}
+
+.diary {
+  position: relative;
+  max-width: 36rem;
+  margin: 0 auto;
+  padding: 2.4rem 1.4rem 2rem 2.6rem;
+  color: var(--diary-ink);
+  background-color: var(--diary-paper);
+  background-image:
+    linear-gradient(var(--diary-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--diary-grid) 1px, transparent 1px);
+  background-size: 26px 26px;
+  border-radius: .35rem 1rem 1rem .35rem;
+  box-shadow:
+    -6px 0 0 -2px #F3C3D7,
+    0 1px 0 #F3D9E6,
+    0 22px 40px -24px rgba(58, 44, 74, .45);
+}
+/* 스프링 구멍 */
+.diary::before {
+  content: "";
+  position: absolute; left: .7rem; top: 1.4rem; bottom: 1.4rem; width: .7rem;
+  background: radial-gradient(circle at 50% 50%, #E9D3DE 0 .26rem, transparent .28rem) 0 0 / .7rem 2rem repeat-y;
+}
+
+.hand { font-family: var(--font-hand); }
+
+.diary-date {
+  font-family: var(--font-hand);
+  font-size: 1.35rem;
+  color: var(--muted);
+}
+.diary-title {
+  font-family: var(--font-hand);
+  font-size: clamp(2.2rem, 7vw, 2.9rem);
+  line-height: 1.05;
+  margin: .2rem 0 .9rem;
+  /* 형광펜 밑줄 */
+  background: linear-gradient(transparent 62%, #FFD6E7 62%, #FFD6E7 92%, transparent 92%);
+  display: inline;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.diary-text {
+  font-family: var(--font-hand);
+  font-size: 1.6rem;
+  line-height: 26px;        /* 모눈 한 칸에 한 줄 */
+  padding-top: 1px;
+  white-space: pre-line;
+}
+
+/* 마스킹테이프 */
+.tape {
+  position: absolute;
+  height: 1.5rem; width: 5.5rem;
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,.35) 0 6px, transparent 6px 12px), var(--tape, #F7B7CF);
+  opacity: .88;
+  clip-path: polygon(3% 0, 97% 4%, 100% 50%, 96% 100%, 2% 96%, 0 50%);
+}
+
+/* 폴라로이드 */
+.polaroid {
+  position: relative;
+  background: #fff;
+  padding: .45rem .45rem 1.7rem;
+  box-shadow: 0 6px 16px -8px rgba(58, 44, 74, .55);
+  transform: rotate(var(--tilt, -2deg));
+}
+.polaroid img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+.polaroid figcaption {
+  position: absolute; left: 0; right: 0; bottom: .15rem;
+  text-align: center; font-family: var(--font-hand); font-size: 1.15rem; color: var(--muted);
+}
+
+/* 다녀온 곳 — 점선 발자국 길 */
+.route { position: relative; margin: 1.4rem 0 1.2rem; padding-left: 1.6rem; }
+.route::before {
+  content: ""; position: absolute; left: .45rem; top: .6rem; bottom: .6rem;
+  border-left: 2.5px dashed var(--diary-pen); opacity: .45;
+}
+.route-stop { position: relative; margin-bottom: 1.3rem; }
+.route-stop::before {
+  content: ""; position: absolute; left: -1.38rem; top: .45rem;
+  width: .8rem; height: .8rem; border-radius: 50%;
+  background: var(--diary-paper); border: 2.5px solid var(--diary-pen);
+}
+.route-time { font-size: .72rem; font-weight: 700; color: var(--diary-pen); letter-spacing: .02em; }
+.route-place { font-family: var(--font-hand); font-size: 1.7rem; line-height: 1.1; }
+
+.sticker {
+  font-size: 2rem; line-height: 1;
+  filter: drop-shadow(0 2px 0 #fff) drop-shadow(0 0 1px rgba(0,0,0,.25));
+  transform: rotate(var(--tilt, 8deg));
+  display: inline-block;
+}
+
+/* 날짜 띠 */
+.day-strip { scrollbar-width: none; }
+.day-strip::-webkit-scrollbar { display: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .diary-enter { animation: diary-in .5s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes diary-in {
+    from { opacity: 0; transform: translateY(10px) rotate(-.6deg); }
+    to { opacity: 1; transform: none; }
+  }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  .diary { box-shadow: none; }
+}

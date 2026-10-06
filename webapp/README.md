@@ -162,3 +162,19 @@ vercel --prod
 
 `/api/chief` 와 `/api/agents/:id/run` 은 `maxDuration = 60` 이다. 모델 응답이 더 길어질
 수 있으면 올린다.
+
+### 사진 · 여행일기
+
+사진 탭은 날짜별로 나뉜다. 브라우저가 EXIF 의 찍은 날짜·시각을 읽어 그날로 넣고, 긴 변 1600px JPEG 로 줄여 올린다.
+날짜마다 **오늘의 여행일기**를 쓸 수 있다 — 다녀온 곳·시각·장수는 사진에서 코드가 정하고,
+모델은 `src/agents/prompts/diary.md` 를 따라 손글씨 일기체 문장만 쓴다. 모델이 없으면 규칙으로 채운다.
+
+| 메서드 | 경로 | 하는 일 |
+|---|---|---|
+| GET | `/api/trips/:id/photos?date=YYYY-MM-DD` | 그날 사진 + `days`(날짜 띠: 며칠째·장수·일기 여부) |
+| POST | `/api/trips/:id/photos` | 사진 추가 — `date` 생략 시 여행 첫날 |
+| PATCH | `/api/trips/:id/photos/:photoId` | 캡션·날짜·시각·장소 고치기 |
+| GET | `/api/trips/:id/diary?date=` | 그날 일기 (날짜 없으면 전부) |
+| POST | `/api/trips/:id/diary` | `{ date, memo }` 로 일기 쓰기·다시 쓰기 |
+
+총괄에게 "오늘 일기 써 줘"라고 말하면 앨범 담당이 `write_diary` 도구로 같은 일을 한다.

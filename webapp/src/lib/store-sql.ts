@@ -7,7 +7,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db/client";
 import { defaultItinerary } from "./itinerary";
 import { getRegion, guessRegion } from "./regions";
-import type { Expense, Itinerary, Photo, Trip } from "./types";
+import type { Diary, Expense, Itinerary, Photo, Trip } from "./types";
 import type { Draft, DraftItem, Store } from "./store";
 
 const HOME: Trip = {
@@ -131,7 +131,8 @@ export class SqlStore implements Store {
   async listPhotos(tripId: string): Promise<Photo[]> {
     const db = await this.seeded();
     const r = await db.select().from(schema.photos)
-      .where(eq(schema.photos.tripId, tripId)).orderBy(asc(schema.photos.takenAt));
+      .where(eq(schema.photos.tripId, tripId))
+      .orderBy(asc(schema.photos.date), asc(schema.photos.takenAt));
     return r as Photo[];
   }
 
@@ -160,6 +161,32 @@ export class SqlStore implements Store {
     const r = await db.delete(schema.photos)
       .where(and(eq(schema.photos.tripId, tripId), eq(schema.photos.id, id)));
     return (r.rowsAffected ?? 0) > 0;
+  }
+
+  /* ---------- 일기 ----------
+     날마다 한 장. (trip_id, date) 가 기본키라 같은 날을 다시 쓰면 덮어쓴다. */
+  async getDiary(tripId: string, date: string): Promise<Diary | null> {
+    const db = await this.seeded();
+    const r = await db.select().from(schema.diaries)
+      .where(and(eq(schema.diaries.tripId, tripId), eq(schema.diaries.date, date))).limit(1);
+    return (r[0] as Diary) ?? null;
+  }
+
+  async listDiaries(tripId: string): Promise<Diary[]> {
+    const db = await this.seeded();
+    const r = await db.select().from(schema.diaries)
+      .where(eq(schema.diaries.tripId, tripId)).orderBy(asc(schema.diaries.date));
+    return r as Diary[];
+  }
+
+  async putDiary(d: Diary): Promise<Diary> {
+    const db = await this.seeded();
+    await db.insert(schema.diaries).values(d)
+      .onConflictDoUpdate({
+        target: [schema.diaries.tripId, schema.diaries.date],
+        set: d,
+      });
+    return d;
   }
 
   /* ---------- 지출 ---------- */

@@ -46,11 +46,11 @@ export const AGENTS: Record<string, AgentDef> = {
   album: {
     id: "album",
     name: "앨범",
-    blurb: "사진을 일정 블록으로 묶고 캡션을 챙긴다",
+    blurb: "사진을 날짜·일정 블록으로 묶고 여행일기를 쓴다",
     prompt: ALBUM,
     tier: "quick",
     tools: albumTools,
-    maxSteps: 4,
+    maxSteps: 5,
     /* 무엇을 물어도 먼저 이걸 읽고 시작한다 */
     firstTool: "summary",
   },

@@ -1,11 +1,11 @@
 /* ============================================================
    테이블 — libSQL(SQLite). 로컬은 파일 하나, 배포는 Turso URL.
 
-   한 여행에 일정 하나, 사진 여럿, 지출 여럿, 설계 초안 하나.
+   한 여행에 일정 하나, 사진 여럿, 지출 여럿, 설계 초안 하나, 날마다 일기 한 장.
    여행을 지우면 딸린 것도 같이 지워진다 (onDelete: cascade).
    ============================================================ */
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -54,10 +54,30 @@ export const photos = sqliteTable("photos", {
   tripId: text("trip_id").notNull()
     .references(() => trips.id, { onDelete: "cascade" }),
   url: text("url").notNull(),                // 지금은 data URI · 스토리지를 붙이면 그 키
+  date: text("date").notNull(),              // YYYY-MM-DD — 사진 탭이 날짜별로 묶는다
   takenAt: text("taken_at").notNull(),       // HH:MM
   caption: text("caption").notNull().default(""),
   place: text("place"),                      // 그 시각에 있던 일정 블록
-}, (t) => [index("photos_trip").on(t.tripId, t.takenAt)]);
+}, (t) => [index("photos_trip").on(t.tripId, t.date, t.takenAt)]);
+
+/* 하루치 손글씨 여행일기 — 날마다 한 장 */
+export const diaries = sqliteTable("diaries", {
+  tripId: text("trip_id").notNull()
+    .references(() => trips.id, { onDelete: "cascade" }),
+  date: text("date").notNull(),              // YYYY-MM-DD
+  title: text("title").notNull().default(""),
+  mood: text("mood").notNull().default(""),  // 이모지 하나
+  opening: text("opening").notNull().default(""),
+  stops: text("stops", { mode: "json" })
+    .$type<{ time: string; place: string; photoIds: string[]; line: string }[]>()
+    .notNull(),
+  closing: text("closing").notNull().default(""),
+  stickers: text("stickers", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
+  cover: text("cover"),                      // 표지 사진 id
+  memo: text("memo").notNull().default(""),
+  by: text("by").notNull().default("rule"),  // model | rule
+  madeAt: text("made_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (t) => [primaryKey({ columns: [t.tripId, t.date] })]);
 
 export const expenses = sqliteTable("expenses", {
   id: text("id").primaryKey(),
@@ -106,8 +126,18 @@ export const CREATE_SQL = [
      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
   `CREATE TABLE IF NOT EXISTS photos (
      id TEXT PRIMARY KEY, trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
-     url TEXT NOT NULL, taken_at TEXT NOT NULL, caption TEXT NOT NULL DEFAULT '', place TEXT)`,
-  `CREATE INDEX IF NOT EXISTS photos_trip ON photos(trip_id, taken_at)`,
+     url TEXT NOT NULL, date TEXT NOT NULL DEFAULT '', taken_at TEXT NOT NULL,
+     caption TEXT NOT NULL DEFAULT '', place TEXT)`,
+  `CREATE INDEX IF NOT EXISTS photos_trip ON photos(trip_id, date, taken_at)`,
+  `CREATE TABLE IF NOT EXISTS diaries (
+     trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+     date TEXT NOT NULL,
+     title TEXT NOT NULL DEFAULT '', mood TEXT NOT NULL DEFAULT '',
+     opening TEXT NOT NULL DEFAULT '', stops TEXT NOT NULL DEFAULT '[]',
+     closing TEXT NOT NULL DEFAULT '', stickers TEXT NOT NULL DEFAULT '[]',
+     cover TEXT, memo TEXT NOT NULL DEFAULT '', by TEXT NOT NULL DEFAULT 'rule',
+     made_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     PRIMARY KEY (trip_id, date))`,
   `CREATE TABLE IF NOT EXISTS expenses (
      id TEXT PRIMARY KEY, trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
      amount INTEGER NOT NULL, category TEXT NOT NULL, memo TEXT NOT NULL DEFAULT '',
@@ -124,4 +154,5 @@ export const CREATE_SQL = [
    SQLite 는 IF NOT EXISTS 가 없어서 실패를 삼키는 쪽으로 간다. */
 export const PATCH_SQL = [
   `ALTER TABLE trips ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE CASCADE`,
+  `ALTER TABLE photos ADD COLUMN date TEXT NOT NULL DEFAULT ''`,
 ];

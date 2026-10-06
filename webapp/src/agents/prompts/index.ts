@@ -17,7 +17,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-export type PromptId = "chief" | "plan" | "designer" | "album" | "ledger" | "pass";
+export type PromptId = "chief" | "plan" | "designer" | "album" | "ledger" | "pass" | "diary";
 
 const DIR = join(process.cwd(), "src", "agents", "prompts");
 const cache = new Map<PromptId, string>();
@@ -61,3 +61,4 @@ export const DESIGNER = () => readPrompt("designer");
 export const ALBUM = () => readPrompt("album");
 export const LEDGER = () => readPrompt("ledger");
 export const PASS = () => readPrompt("pass");
+export const DIARY = () => readPrompt("diary");
