@@ -220,4 +220,29 @@ export function noteFail(key: string) {
 }
 export function noteOk(key: string) { tries.delete(key); }
 
+/* ---------- 쓰는 횟수 제한 ----------
+   모델을 부르는 길(총괄·에이전트)은 한 번에 돈과 시간이 든다. 공개 주소에
+   올리면 남이 마구 눌러 크레딧을 태울 수 있으므로 사람마다 분당 횟수를 센다.
+   로그인 시도 제한과 같이 서버 메모리다 — 인스턴스가 여럿이면 각자 센다.
+   혼자·가족이 쓰는 앱에는 이 정도가 맞고, 더 필요해지면 DB 나 KV 로 옮긴다. */
+const hits = new Map<string, number[]>();
+
+/** 지나면 메시지, 괜찮으면 null. key 는 보통 사용자 id 다. */
+export function rateLimit(key: string, max = 10, windowMs = 60_000): string | null {
+  const now = Date.now();
+  const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
+  if (recent.length >= max) {
+    const wait = Math.ceil((windowMs - (now - recent[0])) / 1000);
+    hits.set(key, recent);
+    return `잠시만요 — 1분에 ${max}번까지 물어볼 수 있습니다. ${wait}초 뒤에 다시 해 주세요.`;
+  }
+  recent.push(now);
+  hits.set(key, recent);
+  /* 오래된 열쇠는 버린다 — 안 그러면 메모리가 계속 는다 */
+  if (hits.size > 500) {
+    for (const [k, v] of hits) if (!v.some((t) => now - t < windowMs)) hits.delete(k);
+  }
+  return null;
+}
+
 export { and };

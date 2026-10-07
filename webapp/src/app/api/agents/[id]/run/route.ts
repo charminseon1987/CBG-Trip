@@ -4,6 +4,7 @@ import { hasKey } from "@/agents/harness";
 import { AGENTS } from "@/agents/registry";
 import { fail, notFound, ok, parse } from "@/lib/http";
 import { guardTrip } from "@/lib/guard";
+import { rateLimit } from "@/lib/auth";
 
 export const maxDuration = 60;
 
@@ -26,6 +27,10 @@ export async function POST(
   if (!p.ok) return p.res;
   const g = await guardTrip(p.data.tripId);
   if (!g.ok) return g.res;
+
+  /* 총괄과 같은 이유로 횟수를 센다 — 담당을 직접 부르는 길도 결국 모델을 부른다 */
+  const over = rateLimit(`agent:${g.user?.id ?? "anon"}`);
+  if (over) return fail("too_many", over, 429);
 
   const r = await delegate(id, { tripId: p.data.tripId }, p.data.task);
   return ok({

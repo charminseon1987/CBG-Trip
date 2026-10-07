@@ -6,7 +6,9 @@ import CatFace from "./CatFace";
 import { api } from "@/lib/api";
 
 /** 로그인과 첫 설정은 모양이 거의 같아 한 컴포넌트로 쓴다. */
-export default function AuthForm({ mode }: { mode: "login" | "setup" }) {
+export default function AuthForm({
+  mode, codeRequired = false,
+}: { mode: "login" | "setup"; codeRequired?: boolean }) {
   const router = useRouter();
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -18,7 +20,8 @@ export default function AuthForm({ mode }: { mode: "login" | "setup" }) {
     setBusy(true); setErr(null);
     try {
       const body = setup
-        ? { email: f.get("email"), name: f.get("name"), password: f.get("password") }
+        ? { email: f.get("email"), name: f.get("name"), password: f.get("password"),
+            code: f.get("code") ?? "" }
         : { email: f.get("email"), password: f.get("password") };
       if (setup && f.get("password") !== f.get("password2")) {
         throw new Error("비밀번호가 서로 다릅니다.");
@@ -49,11 +52,23 @@ export default function AuthForm({ mode }: { mode: "login" | "setup" }) {
 
       <p className="text-sm text-ink-2">
         {setup
-          ? "쓸 사람이 아직 없습니다. 관리자 계정을 하나 만들어 주세요. 비밀번호는 서버에 해시로만 남고, 원문은 저장되지 않습니다."
+          ? (codeRequired
+              ? "관리자 계정을 만듭니다. 아무나 만들지 못하게 설정 코드를 함께 받습니다. 비밀번호는 서버에 해시로만 남습니다."
+              : "쓸 사람이 아직 없습니다. 관리자 계정을 하나 만들어 주세요. 비밀번호는 서버에 해시로만 남고, 원문은 저장되지 않습니다.")
           : "메일 주소와 비밀번호로 들어갑니다."}
       </p>
 
       <form onSubmit={submit} className="flex flex-col gap-2">
+        {setup && codeRequired && (
+          <label className="flex flex-col gap-1 text-sm">
+            설정 코드
+            <input name="code" required autoComplete="off" spellCheck={false}
+              className="rounded-lg border border-rule bg-card px-3 py-2 font-mono" />
+            <span className="text-xs text-muted">
+              배포할 때 넣은 환경 변수 SETUP_CODE 의 값입니다.
+            </span>
+          </label>
+        )}
         {setup && (
           <label className="flex flex-col gap-1 text-sm">
             이름

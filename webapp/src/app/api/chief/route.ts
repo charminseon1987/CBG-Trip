@@ -2,7 +2,8 @@ import { z } from "zod";
 import { classify, delegate, factsOf, keywordRoute, offlineSay, speak } from "@/agents/chief";
 import { hasKey } from "@/agents/harness";
 import { AGENTS } from "@/agents/registry";
-import { parse } from "@/lib/http";
+import { fail, parse } from "@/lib/http";
+import { rateLimit } from "@/lib/auth";
 import { getRegion } from "@/lib/regions";
 import { guardTrip } from "@/lib/guard";
 import type { RunResult } from "@/agents/harness";
@@ -30,6 +31,10 @@ export async function POST(req: Request) {
 
   const g = await guardTrip(tripId);
   if (!g.ok) return g.res;
+
+  /* 모델을 부르는 길은 한 번에 돈과 시간이 든다 — 사람마다 분당 횟수를 센다 */
+  const over = rateLimit(`chief:${g.user?.id ?? "anon"}`);
+  if (over) return fail("too_many", over, 429);
   const hasMap = Boolean(getRegion(g.trip.region));
 
   const stream = new ReadableStream({
