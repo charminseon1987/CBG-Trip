@@ -2,6 +2,7 @@ import { z } from "zod";
 import { notFound, ok, parse } from "@/lib/http";
 import { guardTrip } from "@/lib/guard";
 import { store } from "@/lib/store";
+import { dropPhoto } from "@/lib/blob";
 import { DATE_RE } from "@/lib/days";
 
 type Ctx = { params: Promise<{ id: string; photoId: string }> };
@@ -28,6 +29,9 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const { id, photoId } = await params;
   const g = await guardTrip(id);
   if (!g.ok) return g.res;
+  /* 지우기 전에 주소를 봐 둬야 저장소의 파일도 같이 지울 수 있다 */
+  const hit = (await store.listPhotos(id)).find((p) => p.id === photoId);
   const gone = await store.deletePhoto(id, photoId);
+  if (gone && hit) await dropPhoto(hit.url);
   return gone ? ok({ deleted: photoId }) : notFound("사진");
 }

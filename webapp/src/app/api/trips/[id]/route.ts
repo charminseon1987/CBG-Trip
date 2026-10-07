@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { fail, notFound, ok, parse } from "@/lib/http";
 import { store } from "@/lib/store";
+import { dropPhoto } from "@/lib/blob";
 import { guardTrip } from "@/lib/guard";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,10 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const { id } = await params;
   const g = await guardTrip(id);          // 남의 여행을 지우지 못하게
   if (!g.ok) return g.res;
+  /* 여행을 지우면 사진 행은 DB 가 같이 지우지만(cascade) 저장소의 파일은 남는다.
+     주소를 먼저 챙겨 두었다가 지운다 — 안 그러면 아무도 안 보는 파일이 쌓인다. */
+  const urls = (await store.listPhotos(id)).map((p) => p.url);
   const gone = await store.deleteTrip(id);
+  if (gone) await Promise.all(urls.map((u) => dropPhoto(u)));
   return gone ? ok({ deleted: id }) : fail("not_deletable", "기본 여행이거나 없는 여행입니다.", 409);
 }

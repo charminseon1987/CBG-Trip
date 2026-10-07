@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { ok, parse } from "@/lib/http";
+import { fail, ok, parse } from "@/lib/http";
 import { guardTrip } from "@/lib/guard";
 import { store } from "@/lib/store";
 import { placeAt } from "@/lib/place";
+import { storePhoto } from "@/lib/blob";
 import { DATE_RE, tripDays } from "@/lib/days";
 
 /* 지금은 파일을 받지 않고 URL/data URI 만 받는다. (화면은 브라우저에서 줄인 JPEG data URI 를 보낸다)
@@ -44,5 +45,18 @@ export async function POST(req: Request, { params }: Ctx) {
   if (!p.ok) return p.res;
   const date = p.data.date ?? g.trip.date;
   const place = p.data.place ?? (await placeAt(id, p.data.takenAt));
-  return ok({ photo: await store.addPhoto(id, { ...p.data, date, place }) }, { status: 201 });
+  /* 저장소가 붙어 있으면 파일로 올리고 DB 에는 주소만 적는다 (lib/blob.ts).
+
+     실패하면 거기서 멈춘다. data URI 로 되돌리지 않는다 — 그러면 한 장에
+     600KB 씩 DB 에 들어가 나중에 사진 탭이 통째로 안 열린다. 지금 알려 주는
+     편이 낫다. */
+  let url: string;
+  try {
+    url = await storePhoto(id, p.data.url);
+  } catch (e) {
+    const why = e instanceof Error ? e.message : String(e);
+    console.error("[photos] 사진 저장 실패:", why);
+    return fail("storage_failed", `사진을 저장하지 못했습니다. ${why}`, 502);
+  }
+  return ok({ photo: await store.addPhoto(id, { ...p.data, url, date, place }) }, { status: 201 });
 }
