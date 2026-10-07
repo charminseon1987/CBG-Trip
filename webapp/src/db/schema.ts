@@ -155,4 +155,9 @@ export const CREATE_SQL = [
 export const PATCH_SQL = [
   `ALTER TABLE trips ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE CASCADE`,
   `ALTER TABLE photos ADD COLUMN date TEXT NOT NULL DEFAULT ''`,
+  /* date 열을 더하기 전에 올린 사진은 날짜가 비어 있다. 그대로 두면 사진 탭의
+     날짜 띠에도 안 잡히고 그날 일기도 못 만든다 — 여행 첫날로 채운다.
+     (ALTER 와 달리 이건 여러 번 돌아도 안전하다) */
+  `UPDATE photos SET date = (SELECT date FROM trips WHERE trips.id = photos.trip_id)
+     WHERE date IS NULL OR date = ''`,
 ];

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { fail, notFound, ok, parse } from "@/lib/http";
+import { guardTrip } from "@/lib/guard";
 import { store } from "@/lib/store";
 import { DATE_RE } from "@/lib/days";
 import { makeDiary } from "@/lib/diary";
@@ -11,7 +12,8 @@ type Ctx = { params: Promise<{ id: string }> };
 /** GET /api/trips/:id/diary[?date=YYYY-MM-DD] — 그날 일기, 날짜가 없으면 전부 */
 export async function GET(req: Request, { params }: Ctx) {
   const { id } = await params;
-  if (!(await store.getTrip(id))) return notFound("여행");
+  const g = await guardTrip(id);
+  if (!g.ok) return g.res;
   const date = new URL(req.url).searchParams.get("date");
   if (date) return ok({ diary: await store.getDiary(id, date) });
   return ok({ diaries: await store.listDiaries(id) });
@@ -25,6 +27,8 @@ const Body = z.object({
 /** POST /api/trips/:id/diary — 그날 사진으로 여행일기를 (다시) 쓴다 */
 export async function POST(req: Request, { params }: Ctx) {
   const { id } = await params;
+  const g = await guardTrip(id);
+  if (!g.ok) return g.res;
   const p = await parse(req, Body);
   if (!p.ok) return p.res;
   const r = await makeDiary(id, p.data.date, p.data.memo.trim());
@@ -54,6 +58,8 @@ const Edit = z.object({
 
 export async function PATCH(req: Request, { params }: Ctx) {
   const { id } = await params;
+  const g = await guardTrip(id);
+  if (!g.ok) return g.res;
   const p = await parse(req, Edit);
   if (!p.ok) return p.res;
   const cur = await store.getDiary(id, p.data.date);

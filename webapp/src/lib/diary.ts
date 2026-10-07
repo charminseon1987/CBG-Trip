@@ -18,6 +18,8 @@ import type { Diary, DiaryStop, Photo, Trip } from "./types";
 
 export const UNKNOWN = "장소 미상";
 const MAX_IMAGES = 8;
+/** 모델에게 주는 시간. 라우트의 maxDuration(60초) 안에서 끝나고 규칙이 받을 여유를 남긴다 */
+const DIARY_BUDGET_MS = Number(process.env.DIARY_TIMEOUT_MS || 45_000);
 /** 장소를 모르는 사진은 이만큼 시간이 벌어지면 다른 장면으로 나눈다 (분) */
 const SCENE_GAP = 30;
 
@@ -103,6 +105,12 @@ async function writeWithModel(
     schema: Written,
     system: DIARY() + promptSuffix(),
     messages: [{ role: "user", content }],
+    /* Ollama 는 max_tokens 가 없으면 생성을 일찍 끊는다 — 하네스에서 이미 당했다 */
+    maxOutputTokens: Number(process.env.AGENT_MAX_TOKENS || 2000),
+    /* 시간을 끊지 않으면 요청이 매달린다. GPU 없는 기계에서 qwen3:4b 로
+       일기를 쓰게 했더니 몇 분이 지나도 안 끝났고, 바로 아래의 규칙 폴백까지
+       가지도 못했다. 제한을 넘기면 규칙이 받아 적는다 — 일기장은 비지 않는다. */
+    abortSignal: AbortSignal.timeout(DIARY_BUDGET_MS),
   });
   return object;
 }
