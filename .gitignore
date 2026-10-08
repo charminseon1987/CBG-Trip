@@ -25,3 +25,6 @@ Thumbs.db
 
 # 브라우저 자동화 도구가 남기는 캡쳐·스냅샷
 .playwright-mcp/
+
+# Vercel 연결 정보 (프로젝트 id 등)
+.vercel
