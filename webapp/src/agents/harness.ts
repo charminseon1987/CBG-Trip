@@ -17,7 +17,7 @@ import { generateText, stepCountIs, streamText, type ModelMessage, type ToolSet 
    그러면 도구 호출도 본문도 없이 빈 응답이 온다 — 실제로 당했다.
    넉넉히 주되 무한정은 아니게. */
 const MAX_OUTPUT = Number(process.env.AGENT_MAX_TOKENS || 2000);
-import { hasModel, modelFor, modelName, promptSuffix, providerId, stripThinking, type Tier } from "./provider";
+import { hasModel, isLocal, modelFor, modelName, promptSuffix, providerId, stripThinking, type Tier } from "./provider";
 
 export { modelFor, type Tier };
 
@@ -85,10 +85,12 @@ function systemFor(agent: AgentDef, ctx: AgentContext): string {
   return `${body.trim()}\n${GROUND_RULES}\n\n맡은 여행 id: ${ctx.tripId}${promptSuffix()}`;
 }
 
-/** 로컬 모델은 느리다 — 도구를 부르는 횟수를 줄인다 */
+/** 내 컴퓨터의 모델은 느리다 — 도구를 부르는 횟수를 줄인다.
+    같은 OpenAI 호환 길이라도 바깥 서버는 빠르니 줄이지 않는다
+    (줄이면 도구를 덜 불러 답이 얕아진다). */
 function stepsFor(agent: AgentDef): number {
   const n = agent.maxSteps ?? 6;
-  return providerId() === "ollama" ? Math.min(n, 3) : n;
+  return providerId() === "ollama" && isLocal() ? Math.min(n, 3) : n;
 }
 
 /* 작은 모델은 도구를 부르는 대신 "도구를 부른 것처럼 생긴 JSON" 을 본문에 쓰기도 한다.

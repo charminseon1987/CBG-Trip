@@ -3,7 +3,7 @@ import { store } from "@/lib/store";
 import { currentUser } from "@/lib/auth";
 import { getRegion } from "@/lib/regions";
 import { agentList } from "@/agents/registry";
-import { modelName, providerId } from "@/agents/provider";
+import { isLocal, modelName, providerId } from "@/agents/provider";
 import CatFace from "@/components/CatFace";
 import UserMenu from "@/components/UserMenu";
 import NewTripForm from "@/components/NewTripForm";
@@ -68,9 +68,12 @@ export default async function Home() {
         <p className="text-sm text-ink-2">
           총괄이 분류해 넘기고, 담당은 자기 도구만 씁니다.{" "}
           <span className="text-z-zoo">
-            {providerId() === "ollama"
-              ? `내 컴퓨터에서 실행 중 · Ollama ${modelName("quick")}`
-              : `Anthropic ${modelName("quick")}`}
+            {providerId() !== "ollama"
+              ? `Anthropic ${modelName("quick")}`
+              : isLocal()
+                ? `내 컴퓨터에서 실행 중 · Ollama ${modelName("quick")}`
+                /* 바깥 서버인데 "내 컴퓨터" 라고 하면 거짓말이 된다 */
+                : modelName("quick")}
           </span>
         </p>
         <div className="mt-4 overflow-hidden rounded-2xl border border-rule bg-card">
