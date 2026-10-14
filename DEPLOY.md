@@ -1,7 +1,39 @@
 # 배포 — 어디까지 했고 다음에 무엇을 하나
 
-마지막 갱신 2026-10-14. **아직 배포하지 않았다.** 저장소 두 개와 `SETUP_CODE` 까지
-붙여 두었고, 남은 것은 `vercel deploy` 한 줄이다.
+마지막 갱신 2026-10-14. **배포했다** — https://cbg-trip.vercel.app
+Turso 가 붙은 것까지 확인했다(`/api/health` → `"store":"libsql"`).
+남은 것은 관리자 자리 하나 — 아래 "지금 걸린 것" 을 먼저 읽을 것.
+
+## 지금 걸린 것 — /setup 이 "이미 설정이 끝났다"고 한다
+
+```
+$ curl https://cbg-trip.vercel.app/api/auth/setup
+{"ok":true,"data":{"needed":false,"codeRequired":true,"locked":false}}
+                   ^^^^^^^^^^^^^^ 사용자가 0명이 아니다
+```
+
+`needed:false` 는 `users` 테이블에 행이 있다는 뜻이고, 그러면 `POST /api/auth/setup`
+이 409 `already_setup` 으로 거절한다 — **`SETUP_CODE` 를 알아도 관리자를 못 만든다.**
+
+누가 들어 있는지는 밖에서 알 수 없다. 로그인 실패 메시지가 "없는 계정" 과
+"틀린 비밀번호" 를 구분하지 않기 때문이다(일부러 그렇게 만들었다).
+
+알아낸 것:
+- 이 배포가 **이 프로젝트의 첫 배포**다 (`vercel list` — 6분 전 하나뿐)
+- 그러니 이 앱이 넣은 행이 아니다. Turso 스토어 `cbg-trip-db` 는 2026-10-12 에
+  만들어졌으니, **붙이기 전부터 그 DB 에 뭔가 들어 있었던 것**으로 보인다
+- 코드가 사용자를 자동으로 넣는 곳은 없다. `schema.ts` 에 INSERT 가 없고,
+  `store-sql.ts` 의 자동 삽입은 여행(`HOME`) 하나뿐이다. 사용자를 만드는 곳은
+  `auth.ts` 의 `createUser` 한 군데뿐이다
+
+확인하는 길 (둘 중 하나):
+1. https://cbg-trip.vercel.app/login 에서 **아는 계정으로 들어가 본다.**
+   들어가지면 끝이다 — 그냥 예전 계정이 남아 있던 것이고, 그대로 쓰면 된다
+2. Turso 대시보드에서 자격증명을 받아 직접 들여다본다 (아래 2단계와 같은 방법).
+   `select id, email, name, role from users` 로 누구인지 본다
+
+둘 다 아니면 Turso 에서 **데이터베이스를 새로 만들어 다시 붙이는 것**이 가장 깨끗하다.
+어차피 지금은 옮긴 데이터가 없다.
 
 가는 길은 **Turso(DB) + Vercel Blob(사진) + 직접 만든 카카오 로그인**이다.
 Supabase 도 재 봤는데 — 카카오 로그인이 내장이고 Storage 도 있어서 끌렸지만 —
