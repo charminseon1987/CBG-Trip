@@ -4,36 +4,39 @@
 Turso 가 붙은 것까지 확인했다(`/api/health` → `"store":"libsql"`).
 남은 것은 관리자 자리 하나 — 아래 "지금 걸린 것" 을 먼저 읽을 것.
 
-## 지금 걸린 것 — /setup 이 "이미 설정이 끝났다"고 한다
+## 관리자 자리 — 풀렸다
 
-```
-$ curl https://cbg-trip.vercel.app/api/auth/setup
-{"ok":true,"data":{"needed":false,"codeRequired":true,"locked":false}}
-                   ^^^^^^^^^^^^^^ 사용자가 0명이 아니다
-```
+배포 직후 `/api/auth/setup` 이 `needed:false` 를 돌려줘서 "관리자를 못 만든다"고 적었었다.
+Turso 를 직접 열어 보니 이유가 나왔다 — **로컬 `trip.db` 가 이미 통째로 들어가 있었다.**
 
-`needed:false` 는 `users` 테이블에 행이 있다는 뜻이고, 그러면 `POST /api/auth/setup`
-이 409 `already_setup` 으로 거절한다 — **`SETUP_CODE` 를 알아도 관리자를 못 만든다.**
+| 테이블 | 행 |
+|---|---|
+| users | 3 (`admin@trip.local` 관리자 · `mom@trip.local` 엄마 · `dad@trip.local` 아빠) |
+| trips | 4 (에버랜드 · 엄마 여행 · 에이전트 검증 · 전주 검증) |
+| itineraries · photos · diaries · expenses | 2 · 6 · 1 · 3 |
+| sessions · drafts | 0 |
 
-누가 들어 있는지는 밖에서 알 수 없다. 로그인 실패 메시지가 "없는 계정" 과
-"틀린 비밀번호" 를 구분하지 않기 때문이다(일부러 그렇게 만들었다).
+로컬 DB 와 수가 정확히 같다. 즉 **4단계(데이터 이전)는 이미 끝나 있다.**
+`/setup` 이 거절한 건 고장이 아니라 제대로 도는 것이다 — 관리자가 이미 있으니까.
 
-알아낸 것:
-- 이 배포가 **이 프로젝트의 첫 배포**다 (`vercel list` — 6분 전 하나뿐)
-- 그러니 이 앱이 넣은 행이 아니다. Turso 스토어 `cbg-trip-db` 는 2026-10-12 에
-  만들어졌으니, **붙이기 전부터 그 DB 에 뭔가 들어 있었던 것**으로 보인다
-- 코드가 사용자를 자동으로 넣는 곳은 없다. `schema.ts` 에 INSERT 가 없고,
-  `store-sql.ts` 의 자동 삽입은 여행(`HOME`) 하나뿐이다. 사용자를 만드는 곳은
-  `auth.ts` 의 `createUser` 한 군데뿐이다
+그러니 `/setup` 이 아니라 **`/login` 으로 들어간다**:
 
-확인하는 길 (둘 중 하나):
-1. https://cbg-trip.vercel.app/login 에서 **아는 계정으로 들어가 본다.**
-   들어가지면 끝이다 — 그냥 예전 계정이 남아 있던 것이고, 그대로 쓰면 된다
-2. Turso 대시보드에서 자격증명을 받아 직접 들여다본다 (아래 2단계와 같은 방법).
-   `select id, email, name, role from users` 로 누구인지 본다
+    https://cbg-trip.vercel.app/login
+    admin@trip.local  +  개발하며 정한 비밀번호 (2026-10-03 에 만든 계정)
 
-둘 다 아니면 Turso 에서 **데이터베이스를 새로 만들어 다시 붙이는 것**이 가장 깨끗하다.
-어차피 지금은 옮긴 데이터가 없다.
+비밀번호가 기억나지 않으면 — 되찾는 길은 없다(메일 발송이 없다). `.env.turso`
+자격증명으로 `users.password_hash` 를 직접 갈아 끼우면 된다. scrypt 해시 꼴은
+`src/lib/auth.ts` 참고.
+
+사진 6장은 전부 data URI 지만 24~267자짜리 시험용이다 — 진짜 사진이 아니라서
+4.5MB 한도 문제는 아직 없다. 앞으로 올리는 사진은 Blob 으로 간다
+(`BLOB_READ_WRITE_TOKEN` 이 Production 에 들어 있다).
+
+### Turso 를 직접 들여다보려면
+
+`webapp/.env.turso` 에 자격증명을 받아 뒀다 (git 에 안 올라간다).
+받은 곳: Vercel > cbg-trip > 왼쪽 사이드바 **Storage** > `cbg-trip-db`
+> Quickstart 상자의 **Copy Snippet**. (Turso 대시보드까지 갈 것 없다)
 
 가는 길은 **Turso(DB) + Vercel Blob(사진) + 직접 만든 카카오 로그인**이다.
 Supabase 도 재 봤는데 — 카카오 로그인이 내장이고 Storage 도 있어서 끌렸지만 —
@@ -108,26 +111,13 @@ vercel deploy --prod   # 프로덕션
 그 다음 사진 한 장을 올려 본다. DB 에 `https://...blob.vercel-storage.com/...`
 가 적히면 Blob 도 붙은 것이고, `data:` 로 시작하면 토큰이 안 들어온 것이다.
 
-### 2. 로컬 데이터 옮기기 — Turso 자격증명을 손으로 가져와야 한다
+### 2. 로컬 데이터 옮기기 — **이미 끝났다**
 
-`webapp/data/trip.db` 에 여행 4개(에버랜드·엄마 여행·에이전트 검증·전주 검증)와
-사용자 3·일정 2·사진 6·일기 1·지출 3 이 있다. Turso 는 빈 상태로 시작한다.
+Turso 를 열어 보니 `webapp/data/trip.db` 의 내용이 그대로 들어가 있었다
+(위 "관리자 자리" 참고). 아래는 **다시 옮길 일이 생겼을 때**를 위해 남긴다.
 
-**안 옮기고 새로 시작해도 된다** — 에버랜드 여행은 코드가 자동으로 넣는다
-(`HOME` in `store-sql.ts`). 가장 쉬운 길이다.
-
-옮기려면 자격증명이 로컬에 있어야 하는데 Vercel 은 안 준다. **Turso 대시보드에서
-직접 가져온다** — Vercel 프로젝트 > Storage > Turso > `Open in Turso` →
-데이터베이스 > Database URL 과 새 토큰 발급. 받은 값을 `webapp/.env.turso` 에:
-
-```
-TURSO_DATABASE_URL=libsql://....turso.io
-TURSO_AUTH_TOKEN=....
-```
-
-(`.env*` 는 `.gitignore` 에 있다. 그래도 커밋 전에 한 번 확인할 것)
-
-그리고:
+자격증명은 `webapp/.env.turso` 에 있다. 없으면 Vercel > cbg-trip > Storage >
+`cbg-trip-db` > Quickstart 의 **Copy Snippet** 으로 다시 받는다.
 
 ```
 cd webapp
