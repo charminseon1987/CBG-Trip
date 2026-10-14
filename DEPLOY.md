@@ -53,8 +53,28 @@ Supabase 도 재 봤는데 — 카카오 로그인이 내장이고 Storage 도 �
 - **`SETUP_CODE` 넣었다** (Production 에만)
 - 코드는 전부 준비됐다. `npx next build` 통과한다 (2026-10-14 확인)
 
-아직 안 넣은 것: `ANTHROPIC_API_KEY`. 없으면 **냥이 채팅만** 멈춘다 —
-일정·지도·가계부·사진·일기는 전부 돈다. 어차피 크레딧이 없어 지금은 넣을 게 없다.
+### 모델은 일부러 안 붙였다 (2026-10-14 결정)
+
+배포본에서 **냥이 채팅만 안 된다.** 일정·지도·가계부·사진·일기는 전부 돈다.
+`ANTHROPIC_API_KEY` 를 Vercel 에 안 넣었기 때문인데, 넣어도 지금은 소용없다.
+
+`webapp/.env.local` 의 키를 재 봤다:
+
+| 확인한 것 | 결과 |
+|---|---|
+| 키가 살아 있나 | ✅ `GET /v1/models` → 200 |
+| 크레딧 | ❌ `Your credit balance is too low to access the Anthropic API.` |
+| 앱이 워크스페이스 헤더를 보내나 | ✅ `provider.ts:24` |
+
+이 키는 `sk-ant-usr-…` 꼴이라 **워크스페이스에 안 묶여 있다**. `ANTHROPIC_API_KEY`
+하나만 넣으면 400 이 난다 — `ANTHROPIC_WORKSPACE_ID` 를 **반드시 같이** 넣어야 한다.
+코드는 이미 그렇게 짜여 있으니, **크레딧만 채우면 두 변수 넣고 재배포로 끝난다.**
+
+**Ollama 는 배포에 못 쓴다.** 로컬(`.env.local` 의 `AGENT_PROVIDER=ollama`)에서만
+쓴다. `OLLAMA_BASE_URL` 이 설정 가능해서 터널로 이 컴퓨터를 물리는 것은 되지만,
+이 기계엔 GPU 가 없어 0.1–3.4 tok/s 이고 컴퓨터가 꺼지면 사이트도 멈춘다. 안 한다.
+
+`AGENT_PROVIDER` 는 Vercel 에 안 넣어도 된다 — 기본값이 `anthropic` 이다.
 
 ## 가장 먼저 알아야 할 것 — 배포 비밀은 내려받을 수 없다
 
