@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { and, asc, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db/client";
 import { defaultItinerary } from "./itinerary";
+import { addMember, canSee as memberCanSee, myTripIds } from "./members";
 import { getRegion, guessRegion } from "./regions";
 import type { Diary, Expense, Itinerary, Photo, Trip } from "./types";
 import type { Draft, DraftItem, Store } from "./store";
@@ -49,15 +50,14 @@ export class SqlStore implements Store {
     const rows = await db.select().from(schema.trips).orderBy(asc(schema.trips.date));
     const all = rows as Trip[];
     if (!viewer || viewer.role === "admin") return all;
-    return all.filter((t) => !t.userId || t.userId === viewer.id);
+    /* 초대받은 여행도 내 목록에 떠야 한다 — 안 그러면 들어갈 길이 링크뿐이다 */
+    const mine = new Set(await myTripIds(viewer.id));
+    return all.filter((t) => !t.userId || t.userId === viewer.id || mine.has(t.id));
   }
 
-  /** 이 사람이 이 여행을 볼 수 있는가 */
+  /** 이 사람이 이 여행을 볼 수 있는가 — 멤버십까지 본다 (lib/members.ts) */
   async canSee(tripId: string, viewer?: { id: string; role: string } | null) {
-    const t = await this.getTrip(tripId);
-    if (!t) return false;
-    if (!viewer || viewer.role === "admin") return true;
-    return !t.userId || t.userId === viewer.id;
+    return memberCanSee(tripId, viewer);
   }
 
   async getTrip(id: string) {
@@ -77,6 +77,9 @@ export class SqlStore implements Store {
       builtin: false,
     };
     await db.insert(schema.trips).values(trip);
+    /* 만든 사람을 주인 멤버로 넣는다. 이걸 빠뜨리면 사람을 초대할 수 없다 —
+       canManage 가 주인 멤버를 찾기 때문이다 */
+    if (trip.userId) await addMember(trip.id, trip.userId, "owner");
     return trip;
   }
 
