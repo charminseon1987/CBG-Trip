@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import AgentFlow, { emptyFlow, type Flow, type FlowCall } from "./AgentFlow";
 import CatFace from "./CatFace";
 import { chiefStream } from "@/lib/api";
 
@@ -22,6 +23,8 @@ export default function ChiefDock({
   const [msgs, setMsgs] = useState<Msg[]>([
     { role: "bot", text: "무엇을 해드릴까요? 일정을 바꾸거나, 사진을 정리하거나, 오늘 쓴 돈을 물어보세요." },
   ]);
+  /* 말풍선과 같은 이벤트를 그림으로도 적어 둔다 (AgentFlow 가 그린다) */
+  const [flow, setFlow] = useState<Flow>(emptyFlow);
   const logRef = useRef<HTMLDivElement>(null);
 
   const push = (m: Msg) => setMsgs((prev) => [...prev, m]);
@@ -39,6 +42,7 @@ export default function ChiefDock({
     input.value = "";
     push({ role: "me", text: q });
     setBusy(true);
+    setFlow({ agents: [], phase: "routing" });
     scroll();
 
     let answer = "";
@@ -49,9 +53,24 @@ export default function ChiefDock({
         if (ev.type === "route") {
           const why = String(ev.why ?? "");
           if (why) push({ role: "sys", text: why });
+          /* 맡을 사람을 미리 다 그려 둔다 — 누가 남았는지 보이라고 */
+          const ids = (Array.isArray(ev.agents) ? ev.agents : []).map(String);
+          const names = (Array.isArray(ev.names) ? ev.names : []).map(String);
+          setFlow({
+            why,
+            phase: ids.length ? "working" : "speaking",
+            agents: ids.map((id, i) => ({
+              id, name: names[i] ?? id, state: "wait" as const, calls: [],
+            })),
+          });
         } else if (ev.type === "handoff") {
           push({ role: "sys", text: `총괄 → ${ev.name} 에이전트에게 맡김` });
           lastAgent = String(ev.agent ?? "chief");
+          const id = String(ev.agent ?? "");
+          setFlow((f) => ({
+            ...f,
+            agents: f.agents.map((a) => (a.id === id ? { ...a, state: "run" } : a)),
+          }));
         } else if (ev.type === "text") {
           answer += String(ev.delta ?? "");
           setMsgs((prev) => {
@@ -74,8 +93,28 @@ export default function ChiefDock({
             evidence: calls,
             model: ev.model ? String(ev.model) : undefined,
           });
+          const id = String(ev.agent ?? "");
+          /* 도구 이름과 걸린 시간만 그림으로 옮긴다 (값은 아래 말풍선에 이미 있다) */
+          const steps: FlowCall[] = (Array.isArray(ev.calls) ? ev.calls : [])
+            .map((c) => ({ tool: String((c as FlowCall).tool ?? "?"), ms: Number((c as FlowCall).ms ?? 0) }));
+          setFlow((f) => {
+            const agents = f.agents.map((a) =>
+              a.id === id
+                ? { ...a, state: "done" as const, calls: steps,
+                    ms: Number(ev.ms ?? 0),
+                    tier: ev.tier ? String(ev.tier) : undefined,
+                    model: ev.model ? String(ev.model) : undefined }
+                : a,
+            );
+            /* 다 끝났으면 총괄이 말할 차례다 */
+            const left = agents.some((a) => a.state !== "done");
+            return { ...f, agents, phase: left ? "working" : "speaking" };
+          });
+        } else if (ev.type === "done") {
+          setFlow((f) => ({ ...f, phase: "done" }));
         } else if (ev.type === "error") {
           push({ role: "bot", text: `문제가 생겼습니다: ${ev.message}` });
+          setFlow((f) => ({ ...f, phase: "error" }));
         }
         scroll();
       }
@@ -110,6 +149,8 @@ export default function ChiefDock({
         <b className="text-sm">총괄 냥이</b>
         <button onClick={() => setOpen(false)} className="ml-auto text-muted" aria-label="닫기">✕</button>
       </header>
+
+      <AgentFlow flow={flow} />
 
       <div ref={logRef} className="flex max-h-[26rem] flex-col gap-2 overflow-y-auto p-3 text-sm">
         {msgs.map((m, i) =>

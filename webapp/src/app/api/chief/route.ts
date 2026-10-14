@@ -44,7 +44,13 @@ export async function POST(req: Request) {
 
       try {
         const route = hasKey() ? await classify(message, hasMap) : keywordRoute(message, hasMap);
-        send({ type: "route", agents: route.agents, why: route.why });
+        /* 이름을 함께 보낸다 — 화면이 명부를 또 적어 두면 여기와 엇갈린다 */
+        send({
+          type: "route",
+          agents: route.agents,
+          names: route.agents.map((id) => AGENTS[id]?.name ?? id),
+          why: route.why,
+        });
 
         const reports: RunResult[] = [];
         for (const id of route.agents) {
