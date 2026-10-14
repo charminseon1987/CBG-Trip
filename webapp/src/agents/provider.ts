@@ -74,6 +74,11 @@ const compat = createOpenAICompatible({
   baseURL: BASE_URL,
   apiKey: API_KEY || "ollama",
   fetch: traced,
+  /* 이걸 안 켜면 SDK 가 구조화 출력을 json_object 로 보낸다. Groq 은 그걸
+     400 으로 거절해서 총괄의 분류(chief.ts 의 classify)가 늘 실패하고
+     규칙 분류로 떨어졌다 — 답은 나오지만 "왜 그 담당인지" 가 사라진다.
+     json_schema 는 Groq 도 로컬 Ollama 도 받는 것을 둘 다 찔러 확인했다. */
+  supportsStructuredOutputs: true,
 });
 
 const MODELS: Record<ProviderId, Record<Tier, string>> = {
