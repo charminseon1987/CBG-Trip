@@ -167,6 +167,45 @@ export async function createUser(
   return { id, email: row.email, name: row.name, role, createdAt: row.createdAt };
 }
 
+/* ---------- 카카오로 들어온 사람 ---------- */
+
+export async function findByKakao(kakaoId: string) {
+  const db = await conn();
+  const r = await db.select().from(schema.users)
+    .where(eq(schema.users.kakaoId, kakaoId)).limit(1);
+  return r[0] ?? null;
+}
+
+/** 카카오 회원번호로 계정을 만든다.
+
+    비밀번호는 빈 문자열이다 — 이 사람은 비밀번호로 들어오지 않는다.
+    verifyPassword 가 "scrypt$…" 꼴이 아니면 바로 false 를 내므로 빈 값으로는
+    로그인이 안 되고, 로그인 라우트도 메일이 없으면 같은 시간을 들여 거절한다.
+
+    메일을 안 주는 사람이 있다 — 카카오에서 메일 제공 동의는 선택이다.
+    그때는 회원번호로 자리만 채운다. users.email 이 NOT NULL UNIQUE 라 비워 둘
+    수 없어서다. 겉으로 보이는 이름이 아니라 열쇠로만 쓴다.
+
+    권한은 늘 member 다. 관리자 자리는 SETUP_CODE 를 아는 사람만 — 카카오로
+    들어왔다고 관리자가 되면 공개 주소에서 선착순이 된다. */
+export async function createKakaoUser(
+  kakaoId: string, name: string, email?: string | null,
+): Promise<User> {
+  const db = await conn();
+  const id = `u-${randomBytes(6).toString("hex")}`;
+  const row = {
+    id,
+    email: (email?.trim().toLowerCase()) || `kakao_${kakaoId}@kakao.local`,
+    name: name.trim() || "카카오 친구",
+    passwordHash: "",
+    kakaoId,
+    role: "member" as Role,
+    createdAt: new Date().toISOString(),
+  };
+  await db.insert(schema.users).values(row);
+  return { id, email: row.email, name: row.name, role: row.role, createdAt: row.createdAt };
+}
+
 export async function listUsers(): Promise<User[]> {
   const db = await conn();
   const rows = await db.select({

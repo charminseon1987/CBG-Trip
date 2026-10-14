@@ -7,10 +7,19 @@ import { api } from "@/lib/api";
 
 /** 로그인과 첫 설정은 모양이 거의 같아 한 컴포넌트로 쓴다. */
 export default function AuthForm({
-  mode, codeRequired = false,
-}: { mode: "login" | "setup"; codeRequired?: boolean }) {
+  mode, codeRequired = false, kakao = false, notice, next,
+}: {
+  mode: "login" | "setup";
+  codeRequired?: boolean;
+  /** 카카오 단추를 보일까. 키가 설정됐을 때만 참이다 */
+  kakao?: boolean;
+  /** 카카오에서 돌아오다 틀어졌을 때 그 까닭 */
+  notice?: string;
+  /** 들어간 뒤 갈 곳 */
+  next?: string;
+}) {
   const router = useRouter();
-  const [err, setErr] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(notice ?? null);
   const [busy, setBusy] = useState(false);
   const setup = mode === "setup";
 
@@ -105,6 +114,26 @@ export default function AuthForm({
           {busy ? "확인하는 중…" : setup ? "관리자 계정 만들기" : "들어가기"}
         </button>
       </form>
+
+      {/* 같이 간 사람을 초대하려면 그 사람이 들어올 수 있어야 한다.
+          비밀번호를 새로 만들게 하면 대부분 거기서 그만둔다. */}
+      {!setup && kakao && (
+        <>
+          <div className="flex items-center gap-3 text-xs text-muted">
+            <span className="h-px flex-1 bg-rule" />또는<span className="h-px flex-1 bg-rule" />
+          </div>
+          <a
+            href={`/api/auth/kakao${next ? `?next=${encodeURIComponent(next)}` : ""}`}
+            className="btn flex items-center justify-center gap-2 py-2.5 font-bold"
+            style={{ background: "#FEE500", color: "#191600", borderColor: "#FEE500" }}
+          >
+            카카오로 시작하기
+          </a>
+          <p className="-mt-1 text-xs text-muted">
+            처음이면 계정이 새로 만들어집니다. 초대받은 여행이 있어야 내용이 보입니다.
+          </p>
+        </>
+      )}
     </main>
   );
 }

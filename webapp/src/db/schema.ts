@@ -11,8 +11,13 @@ export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
-  /* scrypt 해시. 평문은 어디에도 남기지 않는다 */
+  /* scrypt 해시. 평문은 어디에도 남기지 않는다.
+     카카오로 들어온 사람은 빈 문자열이다 — verifyPassword 는 "scrypt$…" 꼴이
+     아니면 바로 false 를 내므로, 빈 값으로는 비밀번호 로그인이 안 된다. */
   passwordHash: text("password_hash").notNull(),
+  /* 카카오가 주는 회원번호. 비밀번호로 가입한 사람은 NULL.
+     UNIQUE 라 한 카카오 계정이 두 사람이 될 수 없다. */
+  kakaoId: text("kakao_id").unique(),
   role: text("role").notNull().default("member"),      // admin | member
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -106,7 +111,8 @@ export const drafts = sqliteTable("drafts", {
 export const CREATE_SQL = [
   `CREATE TABLE IF NOT EXISTS users (
      id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
-     password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'member',
+     password_hash TEXT NOT NULL, kakao_id TEXT UNIQUE,
+     role TEXT NOT NULL DEFAULT 'member',
      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
   `CREATE TABLE IF NOT EXISTS sessions (
      token_hash TEXT PRIMARY KEY,
@@ -160,4 +166,8 @@ export const PATCH_SQL = [
      (ALTER 와 달리 이건 여러 번 돌아도 안전하다) */
   `UPDATE photos SET date = (SELECT date FROM trips WHERE trips.id = photos.trip_id)
      WHERE date IS NULL OR date = ''`,
+  /* 카카오 로그인. 쓰던 DB 에는 이 열이 없다.
+     SQLite 는 ALTER ADD COLUMN 에 UNIQUE 를 못 붙여서 인덱스로 따로 건다. */
+  `ALTER TABLE users ADD COLUMN kakao_id TEXT`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS users_kakao ON users(kakao_id)`,
 ];
