@@ -9,6 +9,7 @@
    ============================================================ */
 import { randomUUID } from "node:crypto";
 import { defaultItinerary } from "./itinerary";
+import { hasDb } from "@/db/client";
 import { SqlStore } from "./store-sql";
 import { getRegion, guessRegion } from "./regions";
 import type { Diary, Expense, Itinerary, Photo, Trip } from "./types";
@@ -201,13 +202,16 @@ class MemoryStore implements Store {
   }
 }
 
-/* DATABASE_URL 이 있으면 DB, 없으면 메모리.
+/* DB 주소가 있으면 DB, 없으면 메모리.
+   어떤 이름으로 들어왔는지는 hasDb() 가 안다 (db/client.ts — 마켓플레이스가
+   넣어 주는 TURSO_* 도 인정한다). 여기서 process.env 를 직접 보면 안 된다:
+   배포에서 조용히 메모리 구현으로 떨어져 로그인도 여행도 사라진다.
    개발 중 핫리로드로 저장소가 날아가지 않게 전역에 붙여 둔다. */
 const g = globalThis as unknown as { __store?: Store };
 
 function pick(): Store {
-  return process.env.DATABASE_URL ? new SqlStore() : new MemoryStore();
+  return hasDb() ? new SqlStore() : new MemoryStore();
 }
 
 export const store: Store = g.__store ?? (g.__store = pick());
-export const storeKind = () => (process.env.DATABASE_URL ? "libsql" : "memory");
+export const storeKind = () => (hasDb() ? "libsql" : "memory");

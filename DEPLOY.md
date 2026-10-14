@@ -1,6 +1,7 @@
 # 배포 — 어디까지 했고 다음에 무엇을 하나
 
-마지막 갱신 2026-10-08. **아직 배포하지 않았다.** 준비만 해 두었다.
+마지막 갱신 2026-10-14. **아직 배포하지 않았다.** 저장소 두 개와 `SETUP_CODE` 까지
+붙여 두었고, 남은 것은 `vercel deploy` 한 줄이다.
 
 가는 길은 **Turso(DB) + Vercel Blob(사진) + 직접 만든 카카오 로그인**이다.
 Supabase 도 재 봤는데 — 카카오 로그인이 내장이고 Storage 도 있어서 끌렸지만 —
@@ -12,66 +13,112 @@ Supabase 도 재 봤는데 — 카카오 로그인이 내장이고 Storage 도 �
 
 - Vercel 로그인 — `charminseon1987`
 - Vercel 프로젝트 **cbg-trip** 생성·연결 (`webapp/.vercel/`, git 에는 안 올라간다)
-- 코드는 전부 준비됐다. 환경 변수만 넣으면 그대로 돈다
+- **Turso 붙였다** — `TURSO_DATABASE_URL`·`TURSO_AUTH_TOKEN` (Preview·Production)
+- **Blob 붙였다** — `BLOB_READ_WRITE_TOKEN`·`BLOB_STORE_ID`·`BLOB_WEBHOOK_PUBLIC_KEY`
+- **`SETUP_CODE` 넣었다** (Production 에만)
+- 코드는 전부 준비됐다. `npx next build` 통과한다 (2026-10-14 확인)
+
+아직 안 넣은 것: `ANTHROPIC_API_KEY`. 없으면 **냥이 채팅만** 멈춘다 —
+일정·지도·가계부·사진·일기는 전부 돈다. 어차피 크레딧이 없어 지금은 넣을 게 없다.
+
+## 가장 먼저 알아야 할 것 — 배포 비밀은 내려받을 수 없다
+
+마켓플레이스가 넣어 준 변수는 Vercel 에서 `type=sensitive` 다.
+**Vercel 이 아무에게도 값을 돌려주지 않는다** — `vercel env pull` 을 해도
+이름만 오고 값은 빈 문자열(`""`)이다. 대시보드에서도 안 보인다.
+
+```
+$ vercel env pull .env.production.local --environment=production
+$ grep TURSO .env.production.local
+TURSO_AUTH_TOKEN=""
+TURSO_DATABASE_URL=""      ← 설정이 안 된 게 아니다. 원래 안 내려온다
+```
+
+확인하는 법 (`type` 을 보면 된다):
+
+```
+vercel api "/v10/projects/<projectId>/env?teamId=<teamId>" --method GET
+```
+
+| 변수 | type | 내려받히나 |
+|---|---|---|
+| `SETUP_CODE` | encrypted | **된다** (우리가 넣은 것) |
+| `BLOB_STORE_ID` | plain | 된다 |
+| `BLOB_READ_WRITE_TOKEN` | sensitive | 안 된다 |
+| `TURSO_DATABASE_URL`·`TURSO_AUTH_TOKEN` | sensitive | 안 된다 |
+
+값은 **배포된 런타임 안에서만** 보인다. 그래서 아래 두 가지가 달라진다.
 
 ## 다음에 할 것
 
-### 1. 저장소 두 개 붙이기 (브라우저, 사람이 해야 함)
+### 1. 배포해서 거기서 확인한다 (로컬로는 못 한다)
 
-https://vercel.com/charminseon1987s-projects/cbg-trip/stores
-
-- `Create Database` → 마켓플레이스 **Turso** → Free → 연결
-  → `DATABASE_URL`·`DATABASE_TOKEN` 이 자동으로 들어간다
-- `Create` → **Blob**
-  → `BLOB_READ_WRITE_TOKEN` 이 자동으로 들어간다
-
-결제 동의가 필요해 CLI 로는 못 한다. Turso CLI 는 필요 없다 —
-Windows 에서는 WSL 이 있어야 하는데 이 기계엔 없고(`REGDB_E_CLASSNOTREG`),
-마켓플레이스로 붙이면 CLI 없이 된다.
-
-### 2. 손으로 넣어야 하는 환경 변수
-
-마켓플레이스가 안 넣어 주는 것들이다. Vercel 대시보드 > Settings > Environment Variables.
-
-| 변수 | 값 | 없으면 |
-|---|---|---|
-| `SETUP_CODE` | 길게 아무거나 정한 비밀 | `/setup` 이 **아예 잠긴다** (의도된 동작) |
-| `AGENT_PROVIDER` | `anthropic` | 기본값이 anthropic 이라 생략 가능 |
-| `ANTHROPIC_API_KEY` | 키 | 냥이 채팅만 멈추고 나머지는 돈다 |
-| `ANTHROPIC_WORKSPACE_ID` | 조직 키일 때만 | — |
-| `DATA_GO_KR_KEY` | 기상청 키 (선택) | 에버랜드 자체 날씨로 넘어간다 |
-
-`AGENT_PROVIDER=ollama` 는 **절대 넣지 말 것** — Ollama 는 localhost 라 Vercel 엔 없다.
-
-### 3. 로컬에서 먼저 돌려 보기
+"로컬에서 프로덕션 값으로 먼저 돌려 본다"는 **버렸다.** 위 이유로 불가능하다.
+대신 배포한 뒤 배포된 주소에서 확인한다.
 
 ```
 cd webapp
-vercel env pull .env.local      # Turso·Blob 값이 로컬로 내려온다
-npx next build && npx next start -p 3100
+vercel deploy          # 프리뷰. 먼저 이걸로 본다
+vercel deploy --prod   # 프로덕션
 ```
 
-확인할 것:
-- 사진을 올리면 DB 에 `https://...blob.vercel-storage.com/...` 가 적히는가
-  (data URI 가 적히면 토큰이 안 들어온 것이다)
-- 여행 목록·일정·일기가 뜨는가 (Turso 에 테이블이 새로 만들어진다)
+프리뷰에는 `SETUP_CODE` 가 없다(Production 에만 넣었다). 그래서 프리뷰에서는
+`/setup` 이 잠겨 관리자를 못 만든다 — **DB 가 진짜 붙었는지는 프로덕션에서만
+끝까지 확인된다.** 프리뷰에서 볼 수 있는 데까지는:
 
-### 4. 지금 로컬 데이터 옮기기
+- `GET /api/health` → `"store": "libsql"` 이어야 한다.
+  `"memory"` 가 나오면 `TURSO_DATABASE_URL` 을 못 읽은 것이다
+  (`src/db/client.ts` 의 `dbUrl()` 이 `TURSO_*` 도 읽는지 확인 — 이 지원이
+  없던 시절 코드로 배포하면 조용히 메모리로 떨어진다)
 
-`webapp/data/trip.db` 에 여행 4개(에버랜드·경주·엄마 여행·전주)와 사진·일기가 있다.
-Turso 는 빈 상태로 시작하므로 옮기려면 스크립트가 필요하다. **아직 안 만들었다.**
-안 옮기고 새로 시작해도 된다 — 에버랜드 여행은 코드가 자동으로 넣는다(`HOME` in `store-sql.ts`).
+프로덕션에 올린 뒤 **바로** `/setup` 에 `SETUP_CODE` 로 관리자를 만든다.
+이게 되면 Turso 에 글이 써진 것이다 — 그게 진짜 확인이다.
+그 다음 사진 한 장을 올려 본다. DB 에 `https://...blob.vercel-storage.com/...`
+가 적히면 Blob 도 붙은 것이고, `data:` 로 시작하면 토큰이 안 들어온 것이다.
 
-### 5. 배포
+### 2. 로컬 데이터 옮기기 — Turso 자격증명을 손으로 가져와야 한다
+
+`webapp/data/trip.db` 에 여행 4개(에버랜드·엄마 여행·에이전트 검증·전주 검증)와
+사용자 3·일정 2·사진 6·일기 1·지출 3 이 있다. Turso 는 빈 상태로 시작한다.
+
+**안 옮기고 새로 시작해도 된다** — 에버랜드 여행은 코드가 자동으로 넣는다
+(`HOME` in `store-sql.ts`). 가장 쉬운 길이다.
+
+옮기려면 자격증명이 로컬에 있어야 하는데 Vercel 은 안 준다. **Turso 대시보드에서
+직접 가져온다** — Vercel 프로젝트 > Storage > Turso > `Open in Turso` →
+데이터베이스 > Database URL 과 새 토큰 발급. 받은 값을 `webapp/.env.turso` 에:
+
+```
+TURSO_DATABASE_URL=libsql://....turso.io
+TURSO_AUTH_TOKEN=....
+```
+
+(`.env*` 는 `.gitignore` 에 있다. 그래도 커밋 전에 한 번 확인할 것)
+
+그리고:
 
 ```
 cd webapp
-vercel --prod
+node scripts/migrate-to-turso.mjs --env=.env.turso                        # 마른 실행
+node scripts/migrate-to-turso.mjs --env=.env.turso --apply                # 실제로
+node scripts/migrate-to-turso.mjs --env=.env.turso --apply --photos=blob  # 사진도 Blob 으로
 ```
 
-배포 직후 **바로** `https://<주소>/setup` 에 들어가 `SETUP_CODE` 로 관리자를 만들 것.
+- `--apply` 없이는 **한 줄도 쓰지 않는다**. 먼저 마른 실행으로 표를 보고 판단할 것
+- 여러 번 돌려도 안전하다 — 이미 간 행은 건너뛴다
+- 받는 쪽을 로컬 값으로 되돌리려면 `--replace`. 지우지 않고 덮어쓰므로(upsert)
+  **받는 쪽에만 있던 행은 살아남는다**. `INSERT OR REPLACE` 로 쓰면 cascade 가
+  딸린 사진·일기를 지워 버린다 — 그래서 안 쓴다 (스크립트 머리말에 적어 뒀다)
+- 테이블 DDL 은 보내는 쪽 `sqlite_master` 에서 읽어 만든다. `schema.ts` 와 엇갈리지 않는다
+- **세션은 안 옮긴다** (로그인 토큰). 배포한 주소에서 새로 로그인하면 된다
+- `--photos=blob` 은 `BLOB_READ_WRITE_TOKEN` 이 필요하다. 이것도 sensitive 라
+  내려받을 수 없다 — Vercel > Storage > Blob 에서 직접 복사해 같은 파일에 넣을 것
 
-### 6. 그 다음 (아직 손 안 댐)
+시험은 로컬 파일 DB 를 받는 쪽으로 두고 돌려 봤다 — 7개 테이블이 값까지 같고,
+두 번 돌려도 19행을 건너뛰며, `--replace` 가 받는 쪽에만 있던 사진을 지키는 것까지 확인했다.
+**진짜 Turso 로는 아직 못 돌려 봤다.**
+
+### 3. 그 다음 (아직 손 안 댐)
 
 - **카카오 로그인** — 배포 주소가 정해져야 리다이렉트 URI 를 넣을 수 있다.
   developers.kakao.com 에서 앱 등록 → REST API 키·Client Secret →
@@ -100,3 +147,9 @@ vercel --prod
   "요청이 Vercel Blob 까지 가고 실패하면 502 를 돌려준다" 까지만 봤다
 - **에이전트는 Anthropic 크레딧이 있어야 한다.** 없으면 냥이 채팅이 멈춘다.
   일정·지도·가계부·사진·일기는 모델 없이도 전부 돈다
+- **`.env.local` 이 배포 값을 가린다.** Next.js 는 `.env.production.local` 을 먼저,
+  거기 없는 이름만 `.env.local` 에서 읽는다. 그런데 `.env.local` 에는
+  `DATABASE_URL=file:./data/trip.db` 가 있고 `src/db/client.ts` 의 `dbUrl()` 은
+  `DATABASE_URL` 을 `TURSO_DATABASE_URL` 보다 먼저 본다 — 그래서 로컬에서
+  `next start` 로 "프로덕션처럼" 돌리면 **조용히 로컬 파일 DB 를 쓴다**.
+  배포에는 `.env.local` 이 없으니 이 함정은 로컬에만 있다
