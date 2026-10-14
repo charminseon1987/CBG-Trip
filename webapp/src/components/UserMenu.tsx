@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import PasswordForm from "./PasswordForm";
 import { api } from "@/lib/api";
 
 export default function UserMenu({
@@ -12,6 +13,7 @@ export default function UserMenu({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [pw, setPw] = useState(false);
   if (!user) return null;
 
   async function out() {
@@ -28,7 +30,9 @@ export default function UserMenu({
         {user.role === "admin" && <span className="ml-1 text-xs font-bold text-brand">관리자</span>}
       </span>
       {user.role === "admin" && <Link href="/admin" className="btn">관리</Link>}
+      <button className="btn" onClick={() => setPw(true)}>비밀번호</button>
       <button className="btn" disabled={busy} onClick={out}>로그아웃</button>
+      {pw && <PasswordForm onClose={() => setPw(false)} />}
     </div>
   );
 }
