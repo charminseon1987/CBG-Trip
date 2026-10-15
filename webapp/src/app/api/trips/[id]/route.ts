@@ -2,7 +2,7 @@ import { z } from "zod";
 import { fail, notFound, ok, parse } from "@/lib/http";
 import { store } from "@/lib/store";
 import { dropPhoto } from "@/lib/blob";
-import { guardTrip } from "@/lib/guard";
+import { guardTrip, needEdit } from "@/lib/guard";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +28,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const { id } = await params;
   const g = await guardTrip(id);          // 남의 여행을 고치지 못하게
   if (!g.ok) return g.res;
+  /* 보기만 하는 사람은 공동의 것을 못 고친다 */
+  const no = needEdit(g);
+  if (no) return no;
   const p = await parse(req, Patch);
   if (!p.ok) return p.res;
   const trip = await store.updateTrip(id, p.data);
@@ -38,6 +41,8 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const { id } = await params;
   const g = await guardTrip(id);          // 남의 여행을 지우지 못하게
   if (!g.ok) return g.res;
+  /* 지우는 것은 주인만. editor 가 남의 여행을 없앨 수 있으면 안 된다 */
+  if (!g.canManage) return fail("forbidden", "여행 주인만 지울 수 있습니다.", 403);
   /* 여행을 지우면 사진 행은 DB 가 같이 지우지만(cascade) 저장소의 파일은 남는다.
      주소를 먼저 챙겨 두었다가 지운다 — 안 그러면 아무도 안 보는 파일이 쌓인다. */
   const urls = (await store.listPhotos(id)).map((p) => p.url);

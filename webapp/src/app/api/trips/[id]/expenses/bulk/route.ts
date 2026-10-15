@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { fail, notFound, ok, parse } from "@/lib/http";
 import { placeAt } from "@/lib/place";
-import { guardTrip } from "@/lib/guard";
+import { guardTrip, needEdit } from "@/lib/guard";
 import { store } from "@/lib/store";
 
 const Row = z.object({
@@ -19,6 +19,9 @@ export async function POST(
   const { id } = await params;
   const g = await guardTrip(id);
   if (!g.ok) return g.res;
+  /* 보기만 하는 사람은 공동의 것을 못 고친다 */
+  const no = needEdit(g);
+  if (no) return no;
   if (!(await store.getTrip(id))) return notFound("여행");
   const p = await parse(req, z.object({ rows: z.array(Row).min(1).max(500) }));
   if (!p.ok) return p.res;

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { notFound, ok, parse } from "@/lib/http";
 import { placeAt } from "@/lib/place";
-import { guardTrip } from "@/lib/guard";
+import { guardTrip, needEdit } from "@/lib/guard";
 import { store } from "@/lib/store";
 
 type Ctx = { params: Promise<{ id: string; expenseId: string }> };
@@ -18,6 +18,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const { id, expenseId } = await params;
   const g = await guardTrip(id);
   if (!g.ok) return g.res;
+  /* 보기만 하는 사람은 공동의 것을 못 고친다 */
+  const no = needEdit(g);
+  if (no) return no;
   const p = await parse(req, Patch);
   if (!p.ok) return p.res;
   const patch: Record<string, unknown> = { ...p.data };
@@ -30,6 +33,9 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const { id, expenseId } = await params;
   const g = await guardTrip(id);
   if (!g.ok) return g.res;
+  /* 보기만 하는 사람은 공동의 것을 못 고친다 */
+  const no = needEdit(g);
+  if (no) return no;
   const gone = await store.deleteExpense(id, expenseId);
   return gone ? ok({ deleted: expenseId }) : notFound("지출");
 }

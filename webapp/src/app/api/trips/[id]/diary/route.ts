@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { fail, notFound, ok, parse } from "@/lib/http";
-import { guardTrip } from "@/lib/guard";
+import { guardTrip, needEdit } from "@/lib/guard";
 import { store } from "@/lib/store";
 import { DATE_RE } from "@/lib/days";
 import { makeDiary } from "@/lib/diary";
@@ -29,6 +29,9 @@ export async function POST(req: Request, { params }: Ctx) {
   const { id } = await params;
   const g = await guardTrip(id);
   if (!g.ok) return g.res;
+  /* 보기만 하는 사람은 공동의 것을 못 고친다 */
+  const no = needEdit(g);
+  if (no) return no;
   const p = await parse(req, Body);
   if (!p.ok) return p.res;
   const r = await makeDiary(id, p.data.date, p.data.memo.trim());
@@ -60,6 +63,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const { id } = await params;
   const g = await guardTrip(id);
   if (!g.ok) return g.res;
+  /* 보기만 하는 사람은 공동의 것을 못 고친다 */
+  const no = needEdit(g);
+  if (no) return no;
   const p = await parse(req, Edit);
   if (!p.ok) return p.res;
   const cur = await store.getDiary(id, p.data.date);

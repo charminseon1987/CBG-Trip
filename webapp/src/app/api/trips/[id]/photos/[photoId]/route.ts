@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { notFound, ok, parse } from "@/lib/http";
-import { guardTrip } from "@/lib/guard";
+import { guardTrip, needEdit } from "@/lib/guard";
 import { store } from "@/lib/store";
 import { dropPhoto } from "@/lib/blob";
 import { DATE_RE } from "@/lib/days";
@@ -19,6 +19,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const { id, photoId } = await params;
   const g = await guardTrip(id);
   if (!g.ok) return g.res;
+  /* 보기만 하는 사람은 공동의 것을 못 고친다 */
+  const no = needEdit(g);
+  if (no) return no;
   const p = await parse(req, Patch);
   if (!p.ok) return p.res;
   const photo = await store.updatePhoto(id, photoId, p.data);
@@ -29,6 +32,9 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const { id, photoId } = await params;
   const g = await guardTrip(id);
   if (!g.ok) return g.res;
+  /* 보기만 하는 사람은 공동의 것을 못 고친다 */
+  const no = needEdit(g);
+  if (no) return no;
   /* 지우기 전에 주소를 봐 둬야 저장소의 파일도 같이 지울 수 있다 */
   const hit = (await store.listPhotos(id)).find((p) => p.id === photoId);
   const gone = await store.deletePhoto(id, photoId);

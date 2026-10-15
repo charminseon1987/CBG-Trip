@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { notFound, ok, parse } from "@/lib/http";
-import { guardTrip } from "@/lib/guard";
+import { guardTrip, needEdit } from "@/lib/guard";
 import { store } from "@/lib/store";
 
 const Put = z.object({
@@ -26,6 +26,9 @@ export async function PUT(req: Request, { params }: Ctx) {
   const { id } = await params;
   const g = await guardTrip(id);
   if (!g.ok) return g.res;
+  /* 보기만 하는 사람은 공동의 것을 못 고친다 */
+  const no = needEdit(g);
+  if (no) return no;
   const p = await parse(req, Put);
   if (!p.ok) return p.res;
   const it = await store.putItinerary(id, p.data);

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ok, parse } from "@/lib/http";
-import { guardTrip } from "@/lib/guard";
+import { guardTrip, needEdit } from "@/lib/guard";
 import { store } from "@/lib/store";
 import { placeAt } from "@/lib/place";
 import { EXPENSE_CATEGORIES } from "@/lib/types";
@@ -34,6 +34,9 @@ export async function POST(req: Request, { params }: Ctx) {
   const { id } = await params;
   const g = await guardTrip(id);
   if (!g.ok) return g.res;
+  /* 보기만 하는 사람은 공동의 것을 못 고친다 */
+  const no = needEdit(g);
+  if (no) return no;
   const p = await parse(req, New);
   if (!p.ok) return p.res;
   const place = p.data.place ?? (await placeAt(id, p.data.at));
