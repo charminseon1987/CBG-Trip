@@ -70,17 +70,49 @@ export async function addMember(tripId: string, userId: string, role: TripRole =
   await db.insert(schema.tripMembers).values({ tripId, userId, role }).onConflictDoNothing();
 }
 
+/* trips.user_id 는 멤버 표가 생기기 전의 주인 칸이다. 아래 canSee·canEdit·canManage
+   가 아직 이 칸을 보고 바로 통과시킨다 — 옮겨 적기(PATCH_SQL)가 빠뜨린 여행에서도
+   주인이 잠기지 않게 하려고 둔 안전장치다.
+
+   그 안전장치에 구멍이 있었다. 만든 사람이 멤버에서 빠지거나 권한이 내려가도
+   이 칸이 그 사람을 가리키는 동안은 계속 주인처럼 행동한다 — 내보내기와 나가기가
+   그 사람에게만 듣지 않는다.
+
+   그래서 멤버가 바뀔 때마다 이 칸을 남은 주인 하나로 다시 맞춘다. 멤버 표가 진짜고
+   이 칸은 거울이다. NULL 로는 절대 두지 않는다 — NULL 은 "주인 없는 기본 여행"
+   (누구나 본다)을 뜻하므로, 비워 두면 가족 여행이 공개된다. */
+async function syncLegacyOwner(tripId: string) {
+  const db = await conn();
+  const t = await db.select({ userId: schema.trips.userId })
+    .from(schema.trips).where(eq(schema.trips.id, tripId)).limit(1);
+  const mirror = t[0]?.userId ?? null;
+  if (!mirror) return;                                   // 기본 여행은 건드리지 않는다
+  if ((await roleOf(tripId, mirror)) === "owner") return; // 아직 주인이면 그대로 둔다
+
+  const owners = await db.select({ userId: schema.tripMembers.userId })
+    .from(schema.tripMembers)
+    .where(and(eq(schema.tripMembers.tripId, tripId), eq(schema.tripMembers.role, "owner")))
+    .limit(1);
+  /* 주인이 아무도 없으면 그대로 둔다 — 라우트의 마지막 주인 보호가 막으므로
+     생기지 않지만, 생겼다면 비우는 쪽이 더 위험하다 */
+  if (!owners.length) return;
+  await db.update(schema.trips).set({ userId: owners[0].userId })
+    .where(eq(schema.trips.id, tripId));
+}
+
 /** 권한만 바꾼다. 지우고 다시 넣으면 들어온 날짜(joined_at)가 날아간다 */
 export async function setRole(tripId: string, userId: string, role: TripRole) {
   const db = await conn();
   await db.update(schema.tripMembers).set({ role })
     .where(and(eq(schema.tripMembers.tripId, tripId), eq(schema.tripMembers.userId, userId)));
+  await syncLegacyOwner(tripId);
 }
 
 export async function removeMember(tripId: string, userId: string) {
   const db = await conn();
   await db.delete(schema.tripMembers)
     .where(and(eq(schema.tripMembers.tripId, tripId), eq(schema.tripMembers.userId, userId)));
+  await syncLegacyOwner(tripId);
 }
 
 /** 주인이 몇 명인가. 마지막 주인을 내보내지 못하게 막는 데 쓴다 */
