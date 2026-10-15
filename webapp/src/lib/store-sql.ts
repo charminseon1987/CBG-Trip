@@ -49,7 +49,12 @@ export class SqlStore implements Store {
     const db = await this.seeded();
     const rows = await db.select().from(schema.trips).orderBy(asc(schema.trips.date));
     const all = rows as Trip[];
-    if (!viewer || viewer.role === "admin") return all;
+    /* 로그인 안 한 사람에게는 주인 없는 기본 여행만. 전에는 여기서 전부
+       내줬다 — 혼자 쓰던 시절의 줄이다. 미들웨어는 쿠키가 있는지만 보므로
+       죽은 세션 쿠키가 남아 있으면 이 길로 들어와 남의 여행 제목·날짜가
+       목록에 떴다. 개별 여행은 guardTrip 이 404 로 막고 있었다 */
+    if (!viewer) return all.filter((t) => !t.userId);
+    if (viewer.role === "admin") return all;
     /* 초대받은 여행도 내 목록에 떠야 한다 — 안 그러면 들어갈 길이 링크뿐이다 */
     const mine = new Set(await myTripIds(viewer.id));
     return all.filter((t) => !t.userId || t.userId === viewer.id || mine.has(t.id));

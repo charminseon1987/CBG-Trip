@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ok, parse } from "@/lib/http";
+import { fail, ok, parse } from "@/lib/http";
 import { store } from "@/lib/store";
 import { currentUser } from "@/lib/auth";
 
@@ -23,11 +23,14 @@ export async function GET() {
 
 /** POST /api/trips — 새 여행. region 을 주지 않으면 장소 이름으로 지역팩을 짐작한다. */
 export async function POST(req: Request) {
+  const me = await currentUser();
+  /* 주인 없는 여행은 누구나 보는 기본 여행이 된다. 로그인 없이 만들게 두면
+     가족 여행이 공개로 태어난다 */
+  if (!me) return fail("unauthorized", "로그인이 필요합니다.", 401);
   const p = await parse(req, NewTrip);
   if (!p.ok) return p.res;
-  const me = await currentUser();
   const trip = await store.createTrip({
-    ...p.data, end: p.data.end ?? p.data.date, userId: me?.id ?? null,
+    ...p.data, end: p.data.end ?? p.data.date, userId: me.id,
   });
   return ok({ trip }, { status: 201 });
 }
