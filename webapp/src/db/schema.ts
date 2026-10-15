@@ -97,6 +97,14 @@ export const tripInvites = sqliteTable("trip_invites", {
   label: text("label").notNull().default(""),
   invitedBy: text("invited_by").references(() => users.id, { onDelete: "set null" }),
   expiresAt: integer("expires_at").notNull(),         // epoch ms
+  /* 링크 원문. 주인이 함께 탭에 들어갈 때마다 다시 보고 복사할 수 있어야 해서
+     여기 둔다. 해시만 두던 때는 만든 직후 한 번만 보였고, 복사 안 하고 떠나면
+     되살릴 길이 없었다.
+
+     대가: DB 가 새면 아직 안 쓴 링크로 그 여행에 들어올 수 있다. 그래서 쓰는
+     즉시 이 칸을 비운다 — 살아 있는 초대장만 원문을 갖는다. 들어가는 판정은
+     여전히 token_hash 로 한다 */
+  token: text("token"),
   usedAt: text("used_at"),                            // 쓴 시각. NULL 이면 아직
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (t) => [index("invites_trip").on(t.tripId)]);
@@ -259,4 +267,7 @@ export const PATCH_SQL = [
   /* 옛 사진은 그 여행 주인이 올린 것으로 본다. 그래야 "내 사진" 에 잡힌다 */
   `UPDATE photos SET user_id = (SELECT user_id FROM trips WHERE trips.id = photos.trip_id)
      WHERE user_id IS NULL`,
+  /* 초대 링크를 다시 볼 수 있게 원문을 둔다. 쓰던 DB 의 옛 초대장은 NULL 이라
+     링크를 되살릴 수 없다 — 그건 새로 만들어 보내야 한다 */
+  `ALTER TABLE trip_invites ADD COLUMN token TEXT`,
 ];

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 type Ctx = { params: Promise<{ id: string }> };
 
 /** GET — 누가 같이 하고 있나. 멤버면 볼 수 있다 */
-export async function GET(_req: Request, { params }: Ctx) {
+export async function GET(req: Request, { params }: Ctx) {
   const { id } = await params;
   const g = await guardTrip(id);
   if (!g.ok) return g.res;
@@ -22,6 +22,9 @@ export async function GET(_req: Request, { params }: Ctx) {
       ? (await liveInvites(id)).map((i) => ({
           /* 토큰 해시는 취소할 때 쓰는 손잡이다. 이걸로는 들어갈 수 없다 */
           handle: i.tokenHash, label: i.label, role: i.role, expiresAt: i.expiresAt,
+          /* 링크 전체. 들어올 때마다 다시 복사할 수 있어야 한다.
+             원문이 없는 옛 초대장은 null — 그건 새로 만들어 보내야 한다 */
+          url: i.token ? new URL(`/invite/${i.token}`, req.url).toString() : null,
         }))
       : [],
   });

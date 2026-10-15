@@ -16,6 +16,8 @@ interface Member {
 }
 interface LiveInvite {
   handle: string; label: string; role: Role; expiresAt: number;
+  /** 링크 전체. 쓰던 DB 의 옛 초대장은 원문이 없어 null 이다 */
+  url: string | null;
 }
 interface Payload {
   members: Member[];
@@ -41,10 +43,11 @@ export default function MembersBoard({ trip }: { trip: Trip }) {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  /* 방금 만든 초대 링크. 서버는 이 값을 **한 번만** 준다 — DB 에는 해시만 남으므로
-     화면을 떠나면 다시 볼 수 없다. 그래서 지우지 않고 남겨 둔다. */
-  const [fresh, setFresh] = useState<{ url: string; label: string } | null>(null);
-  const [copied, setCopied] = useState(false);
+  /* 방금 만든 초대장을 아래 목록에서 눈에 띄게 하려고 손잡이만 기억한다.
+     링크 자체는 목록이 늘 갖고 있다 — 들어올 때마다 다시 복사할 수 있다. */
+  const [justMade, setJustMade] = useState<string | null>(null);
+  /* 어느 링크를 복사했는지 (손잡이) */
+  const [copied, setCopied] = useState<string | null>(null);
   const [label, setLabel] = useState("");
   const [role, setRole] = useState<"editor" | "viewer">("editor");
 
@@ -70,24 +73,26 @@ export default function MembersBoard({ trip }: { trip: Trip }) {
   }
 
   const invite = () => run(async () => {
-    const r = await api<{ url: string; expiresAt: number }>(
+    const made = label.trim();
+    await api<{ url: string; expiresAt: number }>(
       `/api/trips/${trip.id}/members`,
-      { method: "POST", body: JSON.stringify({ role, label: label.trim() }) },
+      { method: "POST", body: JSON.stringify({ role, label: made }) },
     );
-    setFresh({ url: r.url, label: label.trim() });
-    setCopied(false);
+    setCopied(null);
     setLabel("");
     await load();
+    /* 방금 만든 것을 목록에서 짚어 준다. 라벨이 같은 게 여럿이면 가장 늦게
+       만든 것이 위로 오지 않으니, 목록을 다시 받아 라벨로 찾는다 */
+    setJustMade(made);
   });
 
-  const copy = () => run(async () => {
-    if (!fresh) return;
+  const copy = (handle: string, url: string) => run(async () => {
     /* 클립보드는 거부될 수 있다(권한·http). 그때도 링크는 칸에 그대로 보인다 */
     try {
-      await navigator.clipboard.writeText(fresh.url);
-      setCopied(true);
+      await navigator.clipboard.writeText(url);
+      setCopied(handle);
     } catch {
-      setErr("복사가 막혔습니다. 아래 칸의 링크를 직접 복사해 주세요.");
+      setErr("복사가 막혔습니다. 링크 칸을 눌러 직접 복사해 주세요.");
     }
   });
 
@@ -205,7 +210,8 @@ export default function MembersBoard({ trip }: { trip: Trip }) {
               <section className="mt-7">
                 <h3 className="font-bold">초대 링크 만들기</h3>
                 <p className="mt-0.5 text-sm text-ink-2">
-                  링크는 만든 직후 한 번만 보입니다. 2주 지나면 저절로 죽고, 한 사람이 쓰면 끝납니다.
+                  만든 링크는 아래 목록에 남아 있어 언제든 다시 복사할 수 있습니다.
+                  2주 지나면 저절로 죽고, 한 사람이 쓰면 끝납니다.
                 </p>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -231,53 +237,72 @@ export default function MembersBoard({ trip }: { trip: Trip }) {
                   </button>
                 </div>
                 <p className="mt-1 text-xs text-muted">{ROLE_WHAT[role]}</p>
-
-                {fresh && (
-                  <div className="mt-3 rounded-2xl border-2 border-brand bg-brand-soft px-4 py-3">
-                    <p className="text-sm font-bold text-brand">
-                      {fresh.label ? `${fresh.label} 에게 보낼 링크` : "초대 링크"} — 지금 복사해 두세요
-                    </p>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <input
-                        readOnly
-                        value={fresh.url}
-                        aria-label="초대 링크"
-                        onFocus={(e) => e.currentTarget.select()}
-                        className="min-w-0 flex-1 rounded-lg border border-rule bg-card px-3 py-2 font-mono text-[12px]"
-                      />
-                      <button className="btn px-3 py-2" onClick={copy} disabled={busy}>
-                        {copied ? "복사했습니다" : "복사"}
-                      </button>
-                    </div>
-                  </div>
-                )}
               </section>
 
               {d.invites.length > 0 && (
                 <section className="mt-7">
                   <h3 className="font-bold">아직 안 쓴 초대장</h3>
                   <ul className="mt-2 flex flex-col gap-2">
-                    {d.invites.map((i) => (
-                      <li
-                        key={i.handle}
-                        className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-rule bg-card px-4 py-2.5"
-                      >
-                        <span className="min-w-0 flex-1 truncate text-sm">
-                          {i.label || "메모 없음"}
-                          <span className="ml-2 text-muted">· {ROLE_NAME[i.role]}</span>
-                        </span>
-                        <span className="font-mono text-[12px] text-muted">
-                          {day(i.expiresAt)}까지
-                        </span>
-                        <button
-                          className="btn btn-ghost px-2 py-1 text-sm"
-                          disabled={busy}
-                          onClick={() => revoke(i.handle)}
+                    {d.invites.map((i) => {
+                      const isNew = !!justMade && i.label === justMade;
+                      return (
+                        <li
+                          key={i.handle}
+                          className={`rounded-xl border bg-card px-4 py-3 ${
+                            isNew ? "border-2 border-brand" : "border-rule"
+                          }`}
                         >
-                          취소
-                        </button>
-                      </li>
-                    ))}
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <span className="min-w-0 flex-1 truncate text-sm font-bold">
+                              {i.label || "메모 없음"}
+                              <span className="ml-2 font-normal text-muted">
+                                · {ROLE_NAME[i.role]}
+                              </span>
+                              {isNew && (
+                                <span className="chip chip-solid ml-2 bg-brand text-[11px]">
+                                  방금
+                                </span>
+                              )}
+                            </span>
+                            <span className="font-mono text-[12px] text-muted">
+                              {day(i.expiresAt)}까지
+                            </span>
+                            <button
+                              className="btn btn-ghost px-2 py-1 text-sm"
+                              disabled={busy}
+                              onClick={() => revoke(i.handle)}
+                            >
+                              취소
+                            </button>
+                          </div>
+
+                          {/* 링크는 여기 늘 있다. 들어올 때마다 다시 복사하면 된다 */}
+                          {i.url ? (
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <input
+                                readOnly
+                                value={i.url}
+                                aria-label={`${i.label || "초대"} 링크`}
+                                onFocus={(e) => e.currentTarget.select()}
+                                className="min-w-0 flex-1 rounded-lg border border-rule bg-paper px-3 py-2 font-mono text-[12px]"
+                              />
+                              <button
+                                className={`btn px-3 py-2 ${isNew ? "btn-primary" : ""}`}
+                                disabled={busy}
+                                onClick={() => copy(i.handle, i.url!)}
+                              >
+                                {copied === i.handle ? "복사했습니다" : "복사"}
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="mt-2 text-xs text-muted">
+                              이 초대장은 링크를 다시 볼 수 없습니다 — 링크를 저장하기 전에
+                              만든 것입니다. 취소하고 새로 만들어 보내 주세요.
+                            </p>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                   <p className="mt-1 text-xs text-muted">
                     취소하면 그 링크는 바로 죽습니다. 이미 들어온 사람은 그대로 남습니다.

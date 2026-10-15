@@ -9,8 +9,9 @@
      editor  공동 일정·가계부를 고친다
      viewer  보기만. 다만 **자기 개인 레이어는 고친다** — 자기 것이니까
 
-   초대장 토큰은 해시해서 넣는다. 세션과 같은 이유다 — DB 가 새더라도
-   그 값만으로는 남의 여행에 못 들어온다. 원문은 만들 때 한 번만 보여 준다.
+   초대장 토큰은 해시해서 넣고(들어가는 판정은 그 해시로 한다), 아직 안 쓴
+   초대장은 원문도 같이 둔다 — 주인이 함께 탭에 들어갈 때마다 링크를 다시
+   보고 복사해야 하기 때문이다. 쓰는 즉시 원문은 지운다.
    ============================================================ */
 import { createHash, randomBytes } from "node:crypto";
 import { and, eq, isNull, or } from "drizzle-orm";
@@ -142,7 +143,7 @@ export interface Invite {
   usedAt: string | null;
 }
 
-/** 초대장을 만든다. 원문 토큰은 **여기서만** 나온다 — DB 에는 해시만 남는다 */
+/** 초대장을 만든다. 해시와 원문을 같이 넣는다 — 원문은 쓰면 지워진다 */
 export async function createInvite(
   tripId: string, invitedBy: string, role: TripRole = "editor", label = "",
 ): Promise<{ token: string; expiresAt: number }> {
@@ -150,7 +151,7 @@ export async function createInvite(
   const token = randomBytes(24).toString("base64url");
   const expiresAt = Date.now() + INVITE_DAYS * 864e5;
   await db.insert(schema.tripInvites).values({
-    tokenHash: sha(token), tripId, role, label, invitedBy, expiresAt,
+    tokenHash: sha(token), token, tripId, role, label, invitedBy, expiresAt,
   });
   return { token, expiresAt };
 }
@@ -162,6 +163,8 @@ export async function liveInvites(tripId: string) {
     role: schema.tripInvites.role, label: schema.tripInvites.label,
     expiresAt: schema.tripInvites.expiresAt, createdAt: schema.tripInvites.createdAt,
     tokenHash: schema.tripInvites.tokenHash,
+    /* 주인이 다시 복사할 수 있게 원문도 같이. 옛 초대장은 NULL 이다 */
+    token: schema.tripInvites.token,
   })
     .from(schema.tripInvites)
     .where(and(eq(schema.tripInvites.tripId, tripId), isNull(schema.tripInvites.usedAt)));
@@ -209,9 +212,10 @@ export async function redeem(
   if (inv.expiresAt <= Date.now()) return { ok: false, why: "기한이 지난 초대장입니다." };
 
   await addMember(inv.tripId, userId, inv.role as TripRole);
-  /* 한 번 쓰면 끝낸다. 링크가 돌아다녀도 두 번째 사람은 못 들어온다 */
+  /* 한 번 쓰면 끝낸다. 링크가 돌아다녀도 두 번째 사람은 못 들어온다.
+     원문도 같이 지운다 — 다 쓴 링크를 DB 에 남겨 둘 이유가 없다 */
   await db.update(schema.tripInvites)
-    .set({ usedAt: new Date().toISOString() })
+    .set({ usedAt: new Date().toISOString(), token: null })
     .where(eq(schema.tripInvites.tokenHash, sha(token)));
   return { ok: true, tripId: inv.tripId };
 }
