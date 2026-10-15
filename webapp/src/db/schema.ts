@@ -44,6 +44,9 @@ export const trips = sqliteTable("trips", {
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+/* 하루용 옛 표. 여행당 한 줄뿐이라 1박2일을 담을 수 없었다 —
+   itinerary_days 가 그 자리를 대신한다. 쓰던 DB 를 위해 정의만 남겨 두고
+   PATCH_SQL 이 첫날로 옮겨 적는다. 새로 쓰는 코드는 이 표를 보지 않는다. */
 export const itineraries = sqliteTable("itineraries", {
   tripId: text("trip_id").primaryKey()
     .references(() => trips.id, { onDelete: "cascade" }),
@@ -53,6 +56,26 @@ export const itineraries = sqliteTable("itineraries", {
   cursor: integer("cursor").notNull().default(0),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
+
+/* 날마다 한 줄. 7박8일이면 여덟 줄이다.
+
+   날짜를 일정에 박지 않고 (여행, 날짜) 로 나눈 까닭: 날마다 출발 시각이
+   다르고(첫날은 늦게 떠나고 마지막 날은 일찍 돌아온다), 거리·도착시각 계산도
+   그날 순서만 보고 하면 된다. 하루용 모델에 날짜를 끼워 넣으면 계산이
+   "하루 치" 라는 전제를 잃는다.
+
+   PK 를 (trip_id, date) 로 바꿔야 해서 표를 새로 만들었다 — SQLite 는
+   ALTER 로 주 키를 못 바꾼다. */
+export const itineraryDays = sqliteTable("itinerary_days", {
+  tripId: text("trip_id").notNull()
+    .references(() => trips.id, { onDelete: "cascade" }),
+  date: text("date").notNull(),              // YYYY-MM-DD
+  items: text("items", { mode: "json" }).$type<string[]>().notNull(),
+  start: text("start").notNull().default("09:00"),
+  busy: integer("busy", { mode: "boolean" }).notNull().default(false),
+  cursor: integer("cursor").notNull().default(0),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (t) => [primaryKey({ columns: [t.tripId, t.date] })]);
 
 export const photos = sqliteTable("photos", {
   id: text("id").primaryKey(),
@@ -155,9 +178,12 @@ export const expenses = sqliteTable("expenses", {
   amount: integer("amount").notNull(),
   category: text("category").notNull(),      // ticket car food snack gift etc
   memo: text("memo").notNull().default(""),
+  /* 며칠짜리 여행이면 "둘째 날 점심" 을 가려야 한다. 빈 문자열은 날짜를
+     아직 안 정한 것 — 가져온 명세서에 날짜가 없을 때 그렇게 들어온다 */
+  date: text("date").notNull().default(""),  // YYYY-MM-DD
   at: text("at").notNull(),                  // HH:MM
   place: text("place"),
-}, (t) => [index("expenses_trip").on(t.tripId, t.at)]);
+}, (t) => [index("expenses_trip").on(t.tripId, t.date, t.at)]);
 
 /* 설계 에이전트가 짠 하루 — 지역팩이 없는 여행용 */
 export const drafts = sqliteTable("drafts", {
@@ -194,6 +220,13 @@ export const CREATE_SQL = [
      items TEXT NOT NULL, start TEXT NOT NULL DEFAULT '09:00',
      busy INTEGER NOT NULL DEFAULT 0, cursor INTEGER NOT NULL DEFAULT 0,
      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+  `CREATE TABLE IF NOT EXISTS itinerary_days (
+     trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+     date TEXT NOT NULL,
+     items TEXT NOT NULL, start TEXT NOT NULL DEFAULT '09:00',
+     busy INTEGER NOT NULL DEFAULT 0, cursor INTEGER NOT NULL DEFAULT 0,
+     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     PRIMARY KEY (trip_id, date))`,
   `CREATE TABLE IF NOT EXISTS photos (
      id TEXT PRIMARY KEY, trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
      url TEXT NOT NULL, date TEXT NOT NULL DEFAULT '', taken_at TEXT NOT NULL,
@@ -232,8 +265,8 @@ export const CREATE_SQL = [
   `CREATE TABLE IF NOT EXISTS expenses (
      id TEXT PRIMARY KEY, trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
      amount INTEGER NOT NULL, category TEXT NOT NULL, memo TEXT NOT NULL DEFAULT '',
-     at TEXT NOT NULL, place TEXT)`,
-  `CREATE INDEX IF NOT EXISTS expenses_trip ON expenses(trip_id, at)`,
+     date TEXT NOT NULL DEFAULT '', at TEXT NOT NULL, place TEXT)`,
+  `CREATE INDEX IF NOT EXISTS expenses_trip ON expenses(trip_id, date, at)`,
   `CREATE TABLE IF NOT EXISTS drafts (
      trip_id TEXT PRIMARY KEY REFERENCES trips(id) ON DELETE CASCADE,
      items TEXT NOT NULL, tips TEXT NOT NULL DEFAULT '[]',
@@ -270,4 +303,13 @@ export const PATCH_SQL = [
   /* 초대 링크를 다시 볼 수 있게 원문을 둔다. 쓰던 DB 의 옛 초대장은 NULL 이라
      링크를 되살릴 수 없다 — 그건 새로 만들어 보내야 한다 */
   `ALTER TABLE trip_invites ADD COLUMN token TEXT`,
+  /* 지출에 날짜. 쓰던 줄은 날짜가 없으니 여행 첫날로 본다 — 하루 여행이었고,
+     그때는 날짜를 물을 이유가 없었다 */
+  `ALTER TABLE expenses ADD COLUMN date TEXT NOT NULL DEFAULT ''`,
+  `UPDATE expenses SET date = (SELECT date FROM trips WHERE trips.id = expenses.trip_id)
+     WHERE date = ''`,
+  /* 하루용 일정을 날짜별 표의 첫날로 옮겨 적는다. 여러 번 돌아도 안전하다 */
+  `INSERT OR IGNORE INTO itinerary_days (trip_id, date, items, start, busy, cursor, updated_at)
+     SELECT i.trip_id, t.date, i.items, i.start, i.busy, i.cursor, i.updated_at
+     FROM itineraries i JOIN trips t ON t.id = i.trip_id`,
 ];

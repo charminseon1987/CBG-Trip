@@ -66,6 +66,17 @@ export default function PhotoBoard({ trip }: { trip: Trip }) {
   const byId = useMemo(() => new Map(all.map((p) => [p.id, p])), [all]);
   const selDay = days.find((d) => d.date === sel);
 
+  /* 그 날 장소별 장수. 묶음은 시각순이라 같은 곳을 두 번 가면 두 덩이가 되는데,
+     이 줄은 장소마다 한 칸으로 합쳐 "어디서 몇 장" 을 먼저 보여 준다 */
+  const places = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of photos) {
+      const k = p.place ?? "이동 중";
+      m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return [...m].map(([place, count]) => ({ place, count }));
+  }, [photos]);
+
   /* 같은 장소끼리 묶어 시각순으로 */
   const groups = useMemo(() => {
     const out: { place: string; time: string; items: Photo[] }[] = [];
@@ -243,7 +254,19 @@ export default function PhotoBoard({ trip }: { trip: Trip }) {
               </p>
             </div>
           ) : (
-            groups.map((g, gi) => (
+            <>
+            {/* 그 날 어디서 몇 장 — 장소가 둘 이상일 때만 */}
+            {places.length > 1 && (
+              <div className="mb-4 flex flex-wrap gap-1.5">
+                {places.map((pl) => (
+                  <span key={pl.place} className="chip text-[12px]">
+                    {pl.place}
+                    <b className="ml-1 text-brand">{pl.count}</b>
+                  </span>
+                ))}
+              </div>
+            )}
+            {groups.map((g, gi) => (
               <div key={`${g.time}-${gi}`} className="mb-6">
                 <p className="mb-2 text-sm">
                   <b className="text-brand">{g.time}</b> <span className="text-ink-2">{g.place}</span>
@@ -276,7 +299,8 @@ export default function PhotoBoard({ trip }: { trip: Trip }) {
                   ))}
                 </div>
               </div>
-            ))
+            ))}
+            </>
           )}
         </section>
       </div>

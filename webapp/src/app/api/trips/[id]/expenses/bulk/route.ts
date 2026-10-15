@@ -8,6 +8,9 @@ const Row = z.object({
   amount: z.number().int().positive(),
   category: z.enum(["ticket", "car", "food", "snack", "gift", "etc"]),
   memo: z.string().max(120).default(""),
+  /* 명세서에 날짜가 있으면 그대로 쓴다. 없으면 여행 첫날로 넣는다 —
+     하루 여행이면 그게 맞고, 며칠짜리면 사람이 표에서 옮긴다 */
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   at: z.string().regex(/^\d{2}:\d{2}$/),
 });
 
@@ -22,13 +25,15 @@ export async function POST(
   /* 보기만 하는 사람은 공동의 것을 못 고친다 */
   const no = needEdit(g);
   if (no) return no;
-  if (!(await store.getTrip(id))) return notFound("여행");
+  const trip = await store.getTrip(id);
+  if (!trip) return notFound("여행");
   const p = await parse(req, z.object({ rows: z.array(Row).min(1).max(500) }));
   if (!p.ok) return p.res;
 
   const added = [];
   for (const r of p.data.rows) {
-    added.push(await store.addExpense(id, { ...r, place: await placeAt(id, r.at) }));
+    const date = r.date ?? trip.date;
+    added.push(await store.addExpense(id, { ...r, date, place: await placeAt(id, date, r.at) }));
   }
   if (!added.length) return fail("empty", "넣을 내역이 없습니다.", 422);
   return ok({ added: added.length, rows: added }, { status: 201 });

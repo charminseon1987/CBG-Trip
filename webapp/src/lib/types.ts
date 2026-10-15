@@ -68,6 +68,8 @@ export interface Trip {
 
 export interface Itinerary {
   tripId: string;
+  /* 며칠짜리 여행이면 날마다 한 줄이다. 날마다 출발 시각과 순서가 따로 있다 */
+  date: string;                  // YYYY-MM-DD
   items: string[];               // Stop id 순서
   start: string;                 // "09:30"
   busy: boolean;                 // 주말 대기 ×1.5
@@ -127,6 +129,9 @@ export interface Expense {
   amount: number;
   category: ExpenseCategory;
   memo: string;
+  /* 며칠짜리 여행에서 "둘째 날 점심" 을 가리려면 날짜가 있어야 한다.
+     빈 문자열은 아직 날짜를 안 정한 것 (명세서에 날짜가 없을 때) */
+  date: string;             // "2026-10-03"
   at: string;               // "13:40"
   place: string | null;
 }

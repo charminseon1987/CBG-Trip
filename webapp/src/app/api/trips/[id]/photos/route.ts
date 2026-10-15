@@ -44,7 +44,9 @@ export async function POST(req: Request, { params }: Ctx) {
   const p = await parse(req, New);
   if (!p.ok) return p.res;
   const date = p.data.date ?? g.trip.date;
-  const place = p.data.place ?? (await placeAt(id, p.data.takenAt));
+  /* 그 사진이 찍힌 **날의** 일정에서 장소를 찾는다. 날짜를 안 넘기면
+     며칠짜리 여행에서 둘째 날 사진에 첫날 장소가 붙는다 */
+  const place = p.data.place ?? (await placeAt(id, date, p.data.takenAt));
   /* 저장소가 붙어 있으면 파일로 올리고 DB 에는 주소만 적는다 (lib/blob.ts).
 
      실패하면 거기서 멈춘다. data URI 로 되돌리지 않는다 — 그러면 한 장에

@@ -9,6 +9,8 @@ import { store } from "@/lib/store";
  *  화면은 이 결과를 확인 창에 띄우고, 사용자가 받아들이면
  *  PUT /api/trips/:id/itinerary 로 확정한다. */
 const Body = z.object({
+  /* 어느 날을 미리 보는가. 생략하면 첫날 */
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   action: z.enum(["add", "remove", "move", "optimize", "set"]),
   id: z.string().optional(),            // add · remove 대상
   from: z.number().int().optional(),    // move
@@ -25,11 +27,14 @@ export async function POST(
   if (!g.ok) return g.res;
   const trip = g.trip;
   const pack = getRegion(trip.region);
-  const it = await store.getItinerary(id);
-  if (!pack || !it) return fail("no_map", "이 여행에는 지도 데이터가 없습니다.", 404);
+  if (!pack) return fail("no_map", "이 여행에는 지도 데이터가 없습니다.", 404);
 
   const p = await parse(req, Body);
   if (!p.ok) return p.res;
+  /* 그 날의 일정 위에서 계산한다. 아직 안 짠 날은 빈 하루에서 시작한다 */
+  const date = p.data.date ?? trip.date;
+  const it = (await store.getItinerary(id, date))
+    ?? { tripId: id, date, items: [], start: "09:00", busy: false, cursor: 0, updatedAt: "" };
   const { action } = p.data;
   const cur = it.items;
   let next = cur.slice();

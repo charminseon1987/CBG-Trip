@@ -157,10 +157,12 @@ export function parseCardSms(text: string): { rows: Parsed[]; skipped: number; n
 }
 
 /** 엑셀에서 바로 열리도록 BOM 을 붙인 CSV */
-export function toCsv(rows: { at: string; category: string; merchant: string; amount: number; place: string | null }[]) {
-  const head = "시각,분류,가맹점,금액,장소";
+export function toCsv(
+  rows: { date?: string; at: string; category: string; merchant: string; amount: number; place: string | null }[],
+) {
+  const head = "날짜,시각,분류,가맹점,금액,장소";
   const body = rows.map((r) =>
-    [r.at, r.category, `"${r.merchant.replace(/"/g, '""')}"`, r.amount, r.place ?? ""].join(","),
+    [r.date ?? "", r.at, r.category, `"${r.merchant.replace(/"/g, '""')}"`, r.amount, r.place ?? ""].join(","),
   );
   return "﻿" + [head, ...body].join("\r\n");
 }

@@ -4,10 +4,13 @@ import { whereAt } from "./itinerary";
 import { getRegion } from "./regions";
 import { store } from "./store";
 
-export async function placeAt(tripId: string, time: string): Promise<string | null> {
+/** 며칠짜리 여행이면 그 날의 일정을 봐야 한다 — 날짜를 안 주면 첫날 */
+export async function placeAt(
+  tripId: string, date: string | null, time: string,
+): Promise<string | null> {
   const trip = await store.getTrip(tripId);
   const pack = getRegion(trip?.region);
-  const it = await store.getItinerary(tripId);
+  const it = await store.getItinerary(tripId, date ?? undefined);
   if (!pack || !it) return null;
   return whereAt(pack, it.items, it.start, it.busy, time);
 }

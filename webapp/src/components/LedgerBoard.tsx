@@ -8,9 +8,14 @@ import { EXPENSE_CATEGORIES, type ExpenseCategory, type Trip } from "@/lib/types
 
 interface Row {
   id: string; amount: number; category: ExpenseCategory;
-  memo: string; at: string; place: string | null;
+  memo: string; date: string; at: string; place: string | null;
 }
 interface Summary { total: number; count: number; people: number; perPerson: number }
+/** 날마다의 합계 — 서버가 세어 준다. 화면이 다시 더하지 않는다 */
+interface DaySum {
+  date: string; day: number | null; label: string;
+  count: number; total: number; perPerson: number;
+}
 
 const won = (n: number) => `${Math.round(n).toLocaleString("ko-KR")}원`;
 const catName = (id: string) => EXPENSE_CATEGORIES.find((c) => c.id === id)?.name ?? id;
@@ -19,15 +24,21 @@ const catColor = (id: string) => EXPENSE_CATEGORIES.find((c) => c.id === id)?.co
 export default function LedgerBoard({ trip }: { trip: Trip }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [sum, setSum] = useState<Summary | null>(null);
+  const [days, setDays] = useState<DaySum[]>([]);
+  /* 어느 날만 볼까. null 이면 전부 */
+  const [only, setOnly] = useState<string | null>(null);
   const [draft, setDraft] = useState<Parsed[] | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
-    const d = await api<{ rows: Row[]; summary: Summary }>(`/api/trips/${trip.id}/expenses`);
+    const d = await api<{ rows: Row[]; summary: Summary; days: DaySum[] }>(
+      `/api/trips/${trip.id}/expenses`,
+    );
     setRows(d.rows);
     setSum(d.summary);
+    setDays(d.days ?? []);
   }, [trip.id]);
   useEffect(() => { void load(); }, [load]);
 
@@ -56,8 +67,11 @@ export default function LedgerBoard({ trip }: { trip: Trip }) {
       await api(`/api/trips/${trip.id}/expenses/bulk`, {
         method: "POST",
         body: JSON.stringify({
+          /* 명세서에 날짜가 있으면 그대로 보낸다. 없으면 서버가 여행 첫날로 넣는다 —
+             전에는 여기서 d.date 를 버려서 며칠짜리 여행의 날짜가 다 뭉쳤다 */
           rows: draft.map((d) => ({
             amount: d.amount, category: d.category, memo: d.merchant, at: d.at,
+            ...(d.date ? { date: d.date } : {}),
           })),
         }),
       });
@@ -81,7 +95,7 @@ export default function LedgerBoard({ trip }: { trip: Trip }) {
   }
 
   function exportCsv() {
-    const blob = new Blob([toCsv(rows.map((r) => ({ ...r, merchant: r.memo })))],
+    const blob = new Blob([toCsv(shown.map((r) => ({ ...r, merchant: r.memo })))],
       { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -94,6 +108,8 @@ export default function LedgerBoard({ trip }: { trip: Trip }) {
     ...c, total: rows.filter((r) => r.category === c.id).reduce((s, r) => s + r.amount, 0),
   }));
   const max = Math.max(1, ...byCat.map((c) => c.total));
+  /* 날짜 띠에서 하루를 고르면 그 날만 보여 준다 */
+  const shown = only ? rows.filter((r) => r.date === only) : rows;
 
   return (
     <div className="mx-auto h-full w-full max-w-5xl overflow-y-auto px-5 py-6 pb-28">
@@ -184,8 +200,46 @@ export default function LedgerBoard({ trip }: { trip: Trip }) {
         </div>
       )}
 
+      {/* 날짜 띠 — 1박2일 이상이면 날마다 나눠 본다. 하루 여행이면 숨긴다 */}
+      {days.length > 1 && (
+        <div className="mt-4 flex flex-wrap gap-1">
+          <button
+            onClick={() => setOnly(null)}
+            aria-selected={only === null}
+            className={`rounded-full px-3 py-1 text-[12.5px] transition ${
+              only === null ? "bg-brand font-bold text-white" : "text-muted hover:bg-paper"
+            }`}
+          >
+            전체
+          </button>
+          {days.map((d) => (
+            <button
+              key={d.date}
+              onClick={() => setOnly(d.date)}
+              aria-selected={only === d.date}
+              title={d.day ? `${d.label} · ${won(d.total)}` : `${d.label} · 여행 기간 밖`}
+              className={`rounded-full px-3 py-1 text-[12.5px] transition ${
+                only === d.date ? "bg-brand font-bold text-white" : "text-muted hover:bg-paper"
+              } ${d.day ? "" : "italic"}`}
+            >
+              {d.day ? `${d.day}일차` : "기간 밖"}
+              <span className="ml-1 opacity-70">{d.count ? won(d.total) : "—"}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* 고른 날의 합계 */}
+      {only && (
+        <p className="mt-2 text-sm text-ink-2">
+          {days.find((d) => d.date === only)?.label} —{" "}
+          <b className="font-mono">{won(days.find((d) => d.date === only)?.total ?? 0)}</b>
+          {" · "}1인당 {won(days.find((d) => d.date === only)?.perPerson ?? 0)}
+        </p>
+      )}
+
       {/* 표 — 바로 고칠 수 있다 */}
-      {rows.length === 0 ? (
+      {shown.length === 0 ? (
         <div className="mt-10 flex flex-col items-center gap-4 text-center">
           <CatFace who="ledger" size={120} ring="border-brand" className="border-[3px]" />
           <p className="text-ink-2">
@@ -197,6 +251,7 @@ export default function LedgerBoard({ trip }: { trip: Trip }) {
           <table className="w-full min-w-[34rem] text-sm">
             <thead>
               <tr className="border-b border-rule text-left text-xs text-muted">
+                <th className="p-2 font-normal">날짜</th>
                 <th className="p-2 font-normal">시각</th>
                 <th className="p-2 font-normal">분류</th>
                 <th className="p-2 font-normal">내용</th>
@@ -206,8 +261,14 @@ export default function LedgerBoard({ trip }: { trip: Trip }) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {shown.map((r) => (
                 <tr key={r.id} className="border-t border-rule">
+                  <td className="p-1">
+                    {/* 날짜를 옮기면 그 날 그 시각의 장소가 다시 붙는다 */}
+                    <input type="date" defaultValue={r.date}
+                      onBlur={(e) => e.target.value && patch(r.id, { date: e.target.value })}
+                      className="w-32 rounded border border-rule bg-paper px-1 py-0.5 font-mono text-xs" />
+                  </td>
                   <td className="p-1">
                     <input type="time" defaultValue={r.at} onBlur={(e) => patch(r.id, { at: e.target.value })}
                       className="w-24 rounded border border-rule bg-paper px-1 py-0.5 font-mono text-xs" />
@@ -240,7 +301,8 @@ export default function LedgerBoard({ trip }: { trip: Trip }) {
         </div>
       )}
       <p className="mt-2 text-xs text-muted">
-        시각을 고치면 그 시각에 있던 일정 장소가 자동으로 다시 붙습니다. 분류 이름은 {catName("ticket")} 등 여섯 가지로 고정입니다.
+        날짜나 시각을 고치면 그 날 그 시각에 있던 일정 장소가 자동으로 다시 붙습니다.
+        분류 이름은 {catName("ticket")} 등 여섯 가지로 고정입니다.
       </p>
     </div>
   );

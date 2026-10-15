@@ -29,13 +29,23 @@ export default function TripWorkspace({ trip, map }: { trip: Trip; map: MapInfo 
   const [tab, setTab] = useState<TabId>("plan");
   const [plan, setPlan] = useState<PlanPayload | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  /* 며칠짜리 여행이면 어느 날을 보고 있는가. null 이면 서버가 첫날을 준다 */
+  const [date, setDate] = useState<string | null>(null);
 
-  const reload = async () => {
+  const reload = async (want?: string | null) => {
+    const d = want === undefined ? date : want;
     try {
-      setPlan(await api<PlanPayload>(`/api/trips/${trip.id}/plan`));
+      setPlan(await api<PlanPayload>(
+        `/api/trips/${trip.id}/plan${d ? `?date=${d}` : ""}`,
+      ));
     } catch (e) {
       setErr(e instanceof Error ? e.message : "불러오지 못했습니다.");
     }
+  };
+
+  const pickDate = (d: string) => {
+    setDate(d);
+    void reload(d);
   };
 
   useEffect(() => {
@@ -62,7 +72,10 @@ export default function TripWorkspace({ trip, map }: { trip: Trip; map: MapInfo 
 
       <main className="min-h-0 flex-1 overflow-hidden">
         {tab === "plan" && (
-          <PlanBoard trip={trip} map={map} plan={plan} error={err} onChanged={reload} />
+          <PlanBoard
+            trip={trip} map={map} plan={plan} error={err}
+            onChanged={() => reload()} onPickDate={pickDate}
+          />
         )}
         {tab === "album" && <PhotoBoard trip={trip} />}
         {tab === "ledger" && <LedgerBoard trip={trip} />}

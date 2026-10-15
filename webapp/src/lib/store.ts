@@ -22,8 +22,12 @@ export interface Store {
   updateTrip(id: string, patch: Partial<Trip>): Promise<Trip | null>;
   deleteTrip(id: string): Promise<boolean>;
 
-  getItinerary(tripId: string): Promise<Itinerary | null>;
-  putItinerary(tripId: string, it: Partial<Itinerary>): Promise<Itinerary | null>;
+  /** 여행의 모든 날. 날짜 순 */
+  listItineraries(tripId: string): Promise<Itinerary[]>;
+  /** 하루. 날짜를 안 주면 첫날 */
+  getItinerary(tripId: string, date?: string): Promise<Itinerary | null>;
+  /** 하루를 덮어쓴다. 그 날이 없으면 만든다 */
+  putItinerary(tripId: string, it: Partial<Itinerary> & { date?: string }): Promise<Itinerary | null>;
 
   listPhotos(tripId: string): Promise<Photo[]>;
   addPhoto(tripId: string, p: Omit<Photo, "id" | "tripId">): Promise<Photo>;
@@ -66,7 +70,8 @@ const HOME: Trip = {
 
 class MemoryStore implements Store {
   private trips = new Map<string, Trip>([[HOME.id, HOME]]);
-  private itineraries = new Map<string, Itinerary>();
+  /* 여행 하나에 날마다 한 줄 */
+  private itineraries = new Map<string, Itinerary[]>();
   private photos = new Map<string, Photo[]>();
   private expenses = new Map<string, Expense[]>();
   private diaries = new Map<string, Diary>();   // key: `${tripId}:${date}`
@@ -119,23 +124,36 @@ class MemoryStore implements Store {
     return true;
   }
 
-  async getItinerary(tripId: string) {
+  async listItineraries(tripId: string) {
     const hit = this.itineraries.get(tripId);
-    if (hit) return hit;
+    if (hit?.length) return [...hit].sort((a, b) => a.date.localeCompare(b.date));
     const trip = this.trips.get(tripId);
     const pack = getRegion(trip?.region);
-    if (!trip || !pack) return null;
-    const fresh = defaultItinerary(pack, tripId);
-    this.itineraries.set(tripId, fresh);
-    return fresh;
+    if (!trip || !pack) return [];
+    /* 첫날만 지역팩 기본 일정으로 깔아 둔다. 둘째 날부터는 빈 채로 둔다 —
+       어디를 갈지는 사람이 정한다 */
+    const fresh: Itinerary = { ...defaultItinerary(pack, tripId), date: trip.date };
+    this.itineraries.set(tripId, [fresh]);
+    return [fresh];
   }
-  async putItinerary(tripId: string, patch: Partial<Itinerary>) {
-    const cur = await this.getItinerary(tripId);
-    if (!cur) return null;
-    const next: Itinerary = {
-      ...cur, ...patch, tripId, updatedAt: new Date().toISOString(),
+  async getItinerary(tripId: string, date?: string) {
+    const all = await this.listItineraries(tripId);
+    if (!all.length) return null;
+    return date ? all.find((d) => d.date === date) ?? null : all[0];
+  }
+  async putItinerary(tripId: string, patch: Partial<Itinerary> & { date?: string }) {
+    const trip = this.trips.get(tripId);
+    if (!trip) return null;
+    const date = patch.date ?? trip.date;
+    const all = await this.listItineraries(tripId);
+    const cur = all.find((d) => d.date === date);
+    const base: Itinerary = cur ?? {
+      tripId, date, items: [], start: "09:00", busy: false, cursor: 0, updatedAt: "",
     };
-    this.itineraries.set(tripId, next);
+    const next: Itinerary = {
+      ...base, ...patch, tripId, date, updatedAt: new Date().toISOString(),
+    };
+    this.itineraries.set(tripId, [...all.filter((d) => d.date !== date), next]);
     return next;
   }
 

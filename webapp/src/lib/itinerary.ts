@@ -322,7 +322,9 @@ export function turns(pack: RegionPack, leg: Leg) {
   return out;
 }
 
-export const defaultItinerary = (pack: RegionPack, tripId: string): Itinerary => ({
+/** 지역팩의 추천 순서로 만든 하루. 날짜는 부르는 쪽이 붙인다 —
+    같은 기본값을 2일차에도 쓸 수 있어야 한다 */
+export const defaultItinerary = (pack: RegionPack, tripId: string): Omit<Itinerary, "date"> => ({
   tripId,
   items: pack.plan.map((p) => p.id),
   start: pack.plan[0]?.time || "09:00",

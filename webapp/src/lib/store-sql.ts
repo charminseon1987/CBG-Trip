@@ -109,29 +109,53 @@ export class SqlStore implements Store {
   }
 
   /* ---------- 일정 ---------- */
-  async getItinerary(tripId: string) {
+  async listItineraries(tripId: string): Promise<Itinerary[]> {
     const db = await this.seeded();
-    const r = await db.select().from(schema.itineraries)
-      .where(eq(schema.itineraries.tripId, tripId)).limit(1);
-    if (r[0]) return r[0] as Itinerary;
+    const rows = await db.select().from(schema.itineraryDays)
+      .where(eq(schema.itineraryDays.tripId, tripId))
+      .orderBy(asc(schema.itineraryDays.date));
+    if (rows.length) return rows as Itinerary[];
 
-    // 없으면 지역팩의 기본 일정으로 한 번 만든다
+    /* 처음이면 첫날에 지역팩 기본 일정을 깔아 둔다. 둘째 날부터는 빈 채로 —
+       어디를 갈지는 사람이 정한다 */
     const trip = await this.getTrip(tripId);
     const pack = getRegion(trip?.region);
-    if (!trip || !pack) return null;
-    const fresh = defaultItinerary(pack, tripId);
-    await db.insert(schema.itineraries).values(fresh).onConflictDoNothing();
-    return fresh;
+    if (!trip || !pack) return [];
+    const fresh: Itinerary = { ...defaultItinerary(pack, tripId), date: trip.date };
+    await db.insert(schema.itineraryDays).values(fresh).onConflictDoNothing();
+    return [fresh];
   }
 
-  async putItinerary(tripId: string, patch: Partial<Itinerary>) {
+  async getItinerary(tripId: string, date?: string) {
+    const all = await this.listItineraries(tripId);
+    if (!all.length) return null;
+    return date ? all.find((d) => d.date === date) ?? null : all[0];
+  }
+
+  async putItinerary(tripId: string, patch: Partial<Itinerary> & { date?: string }) {
     const db = await this.seeded();
-    const cur = await this.getItinerary(tripId);
-    if (!cur) return null;
-    const next: Itinerary = { ...cur, ...patch, tripId, updatedAt: new Date().toISOString() };
-    await db.update(schema.itineraries)
-      .set({ items: next.items, start: next.start, busy: next.busy, cursor: next.cursor, updatedAt: next.updatedAt })
-      .where(eq(schema.itineraries.tripId, tripId));
+    const trip = await this.getTrip(tripId);
+    if (!trip) return null;
+    const date = patch.date ?? trip.date;
+    const all = await this.listItineraries(tripId);
+    const cur = all.find((d) => d.date === date);
+    /* 그 날이 아직 없으면 빈 하루로 시작한다 — 2일차를 처음 짤 때가 그렇다 */
+    const base: Itinerary = cur ?? {
+      tripId, date, items: [], start: "09:00", busy: false, cursor: 0, updatedAt: "",
+    };
+    const next: Itinerary = {
+      ...base, ...patch, tripId, date, updatedAt: new Date().toISOString(),
+    };
+    const set = {
+      items: next.items, start: next.start, busy: next.busy,
+      cursor: next.cursor, updatedAt: next.updatedAt,
+    };
+    if (cur) {
+      await db.update(schema.itineraryDays).set(set)
+        .where(and(eq(schema.itineraryDays.tripId, tripId), eq(schema.itineraryDays.date, date)));
+    } else {
+      await db.insert(schema.itineraryDays).values(next).onConflictDoNothing();
+    }
     return next;
   }
 
@@ -201,7 +225,8 @@ export class SqlStore implements Store {
   async listExpenses(tripId: string): Promise<Expense[]> {
     const db = await this.seeded();
     const r = await db.select().from(schema.expenses)
-      .where(eq(schema.expenses.tripId, tripId)).orderBy(asc(schema.expenses.at));
+      .where(eq(schema.expenses.tripId, tripId))
+      .orderBy(asc(schema.expenses.date), asc(schema.expenses.at));
     return r as Expense[];
   }
 

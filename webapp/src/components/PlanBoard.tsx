@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import CatFace from "./CatFace";
 import PlaceSheet from "./PlaceSheet";
@@ -34,8 +35,21 @@ export interface Candidate {
   kind: string; x: number; y: number; rank: number; note: string;
 }
 
+/** 날짜 띠 한 칸 */
+export interface DayTabDTO {
+  date: string;
+  /** 여행 며칟째. 기간 밖이면 null */
+  day: number | null;
+  label: string;
+  stops: number;
+}
+
 export interface PlanPayload {
   mapped: boolean;
+  /** 여행의 모든 날. 하루 여행이면 한 칸 */
+  days?: DayTabDTO[];
+  /** 지금 보고 있는 날 */
+  date?: string;
   region?: Omit<RegionDTO, "base">;
   itinerary?: { items: string[]; start: string; busy: boolean; cursor: number };
   summary?: { stops: number; total_km: number; move_min: number; ends_at: string };
@@ -70,14 +84,17 @@ const signed = (v: number, unit: string) =>
   `${v > 0 ? "+" : v < 0 ? "−" : "±"}${Math.abs(Math.round(v))}${unit}`;
 
 export default function PlanBoard({
-  trip, map, plan, error, onChanged,
+  trip, map, plan, error, onChanged, onPickDate,
 }: {
   trip: Trip;
   map: MapInfo | null;
   plan: PlanPayload | null;
   error: string | null;
   onChanged: () => void;
+  /** 날짜 띠에서 다른 날을 골랐을 때 */
+  onPickDate: (date: string) => void;
 }) {
+  const router = useRouter();
   const [sheet, setSheet] = useState<Preview | null>(null);
   const [busy, setBusy] = useState(false);
   const [zone, setZone] = useState<string | null>(null);
@@ -88,6 +105,8 @@ export default function PlanBoard({
   const [day, setDay] = useState<ParkDay | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [byZone, setByZone] = useState(false);
+  /* 기간 고치기를 열었는가. 며칠짜리로 바꾸면 날짜 띠가 그만큼 늘어난다 */
+  const [spanOpen, setSpanOpen] = useState(false);
   /* 어느 장소의 설명을 열었는가 — 일정 카드나 지도 픜을 누르면 찜다 */
   const [placeId, setPlaceId] = useState<string | null>(null);
 
@@ -189,7 +208,8 @@ export default function PlanBoard({
     setBusy(true);
     try {
       const p = await api<Preview>(`/api/trips/${trip.id}/plan/preview`, {
-        method: "POST", body: JSON.stringify(body),
+        /* 어느 날을 고치는지 같이 보낸다 — 안 보내면 늘 첫날이 바뀐다 */
+        method: "POST", body: JSON.stringify({ date: plan?.date, ...body }),
       });
       if (p.unchanged) { setSheet(null); return; }
       if (p.verdict === "bad") { setSheet(p); return; }   // 손해면 사용자가 고른다
@@ -210,7 +230,7 @@ export default function PlanBoard({
     setBusy(true);
     try {
       await api(`/api/trips/${trip.id}/itinerary`, {
-        method: "PUT", body: JSON.stringify({ items }),
+        method: "PUT", body: JSON.stringify({ date: plan?.date, items }),
       });
       setSheet(null);
       onChanged();
@@ -219,9 +239,30 @@ export default function PlanBoard({
     }
   }
 
+  /** 여행 기간을 고친다. 줄여도 그 날 일정·사진·지출은 지우지 않는다 —
+      날짜가 기간 밖으로 밀리고 띠에 "기간 밖" 으로 남는다 */
+  async function saveSpan(date: string, end: string) {
+    setBusy(true);
+    try {
+      await api(`/api/trips/${trip.id}`, {
+        method: "PATCH", body: JSON.stringify({ date, end: end < date ? date : end }),
+      });
+      setSpanOpen(false);
+      onChanged();
+      /* 머리글의 날짜는 서버가 그린 것이라 새로 받아야 바뀐다 */
+      router.refresh();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "기간을 바꾸지 못했습니다.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const setCursor = async (n: number) => {
     const c = Math.max(0, Math.min(rows.length - 1, n));
-    await api(`/api/trips/${trip.id}/itinerary`, { method: "PUT", body: JSON.stringify({ cursor: c }) });
+    await api(`/api/trips/${trip.id}/itinerary`, {
+      method: "PUT", body: JSON.stringify({ date: plan?.date, cursor: c }),
+    });
     onChanged();
   };
 
@@ -229,8 +270,71 @@ export default function PlanBoard({
     <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3 pb-28 lg:grid lg:grid-cols-[3.4fr_6.4fr_3.2fr] lg:overflow-hidden lg:pb-3">
       {/* ───────── 오늘의 일정 ───────── */}
       <section className="order-3 shrink-0 lg:order-none lg:min-h-0 lg:shrink lg:overflow-y-auto lg:pr-1">
+        {/* 기간 — 하루 여행도 여기서 며칠로 늘린다 */}
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <button
+            className="chip text-[12px]"
+            onClick={() => setSpanOpen((v) => !v)}
+            aria-expanded={spanOpen}
+          >
+            {trip.date}
+            {trip.end && trip.end !== trip.date ? ` ~ ${trip.end}` : ""}
+            <b className="ml-1 text-brand">
+              {(plan?.days?.filter((d) => d.day).length ?? 1)}일
+            </b>
+          </button>
+          {spanOpen && (
+            <span className="flex flex-wrap items-center gap-1 text-[12px]">
+              <input id="span-from" type="date" defaultValue={trip.date}
+                className="rounded border border-rule bg-paper px-1 py-0.5 font-mono text-xs" />
+              <span className="text-muted">~</span>
+              <input id="span-to" type="date" defaultValue={trip.end || trip.date}
+                className="rounded border border-rule bg-paper px-1 py-0.5 font-mono text-xs" />
+              <button
+                className="btn btn-primary px-2 py-1 text-xs"
+                disabled={busy}
+                onClick={() => {
+                  const a = (document.getElementById("span-from") as HTMLInputElement)?.value;
+                  const b = (document.getElementById("span-to") as HTMLInputElement)?.value;
+                  if (a) void saveSpan(a, b || a);
+                }}
+              >
+                저장
+              </button>
+            </span>
+          )}
+        </div>
+
+        {/* 날짜 띠 — 1박2일 이상이면 날마다 따로 짠다. 하루 여행이면 숨긴다 */}
+        {(plan?.days?.length ?? 0) > 1 && (
+          <div className="mb-2 flex flex-wrap gap-1">
+            {plan!.days!.map((d) => {
+              const on = d.date === plan!.date;
+              return (
+                <button
+                  key={d.date}
+                  onClick={() => onPickDate(d.date)}
+                  aria-selected={on}
+                  title={d.day ? `${d.label} · ${d.stops}곳` : `${d.label} · 여행 기간 밖`}
+                  className={`rounded-full px-3 py-1 text-[12.5px] transition ${
+                    on ? "bg-brand font-bold text-white" : "text-muted hover:bg-paper"
+                  } ${d.day ? "" : "italic"}`}
+                >
+                  {d.day ? `${d.day}일차` : "기간 밖"}
+                  <span className={`ml-1 ${on ? "opacity-80" : "opacity-60"}`}>
+                    {d.stops ? `${d.stops}곳` : "비어 있음"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-bold">오늘의 일정</h2>
+          <h2 className="text-lg font-bold">
+            {(plan?.days?.length ?? 0) > 1
+              ? plan!.days!.find((d) => d.date === plan!.date)?.label ?? "하루 일정"
+              : "오늘의 일정"}
+          </h2>
           <button className="btn" disabled={busy} onClick={() => propose({ action: "optimize" })}>
             동선 최적화
           </button>

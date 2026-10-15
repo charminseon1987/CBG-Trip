@@ -8,11 +8,13 @@ import { makeDiary } from "@/lib/diary";
 import { EXPENSE_CATEGORIES } from "@/lib/types";
 import type { AgentContext } from "../harness";
 
-/** 그 시각에 어느 일정 블록에 있었는지 */
-async function whereAt(tripId: string, time: string): Promise<string | null> {
+/** 그 날 그 시각에 어느 일정 블록에 있었는지 */
+async function whereAt(
+  tripId: string, date: string | null, time: string,
+): Promise<string | null> {
   const trip = await store.getTrip(tripId);
   const pack = getRegion(trip?.region);
-  const it = await store.getItinerary(tripId);
+  const it = await store.getItinerary(tripId, date ?? undefined);
   if (!pack || !it) return null;
   const min = toMin(time);
   const p = compute(pack, it.items, it.start, it.busy);
@@ -129,12 +131,18 @@ export function ledgerTools({ tripId }: AgentContext) {
         category: z.enum(CAT_IDS).describe("ticket car food snack gift etc 중 하나"),
         memo: z.string().optional(),
         at: z.string().regex(/^\d{2}:\d{2}$/).optional().describe("HH:MM · 생략하면 지금"),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
+          .describe("YYYY-MM-DD · 며칠짜리 여행에서 어느 날 쓴 돈인지. 생략하면 여행 첫날"),
       }),
-      execute: async ({ amount, category, memo, at }) => {
+      execute: async ({ amount, category, memo, at, date }) => {
         const now = at ?? hm(new Date().getHours() * 60 + new Date().getMinutes());
-        const place = await whereAt(tripId, now);
+        const trip = await store.getTrip(tripId);
+        /* 날짜를 안 주면 여행 첫날로 적는다. 오늘로 적으면 여행이 끝난 뒤
+           정리할 때 전부 오늘 날짜로 뭉친다 */
+        const day = date ?? trip?.date ?? "";
+        const place = await whereAt(tripId, day, now);
         const row = await store.addExpense(tripId, {
-          amount, category: category as never, memo: memo ?? "", at: now, place,
+          amount, category: category as never, memo: memo ?? "", date: day, at: now, place,
         });
         return { ok: true, ...row };
       },

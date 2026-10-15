@@ -3,6 +3,7 @@ import { notFound, ok, parse } from "@/lib/http";
 import { placeAt } from "@/lib/place";
 import { guardTrip, needEdit } from "@/lib/guard";
 import { store } from "@/lib/store";
+import { DATE_RE } from "@/lib/days";
 
 type Ctx = { params: Promise<{ id: string; expenseId: string }> };
 
@@ -10,6 +11,8 @@ const Patch = z.object({
   amount: z.number().int().positive().optional(),
   category: z.enum(["ticket", "car", "food", "snack", "gift", "etc"]).optional(),
   memo: z.string().max(120).optional(),
+  /* 날짜를 옮긴다 — 명세서에서 가져온 줄의 날짜가 틀렸을 때 */
+  date: z.string().regex(DATE_RE).optional(),
   at: z.string().regex(/^\d{2}:\d{2}$/).optional(),
 });
 
@@ -24,7 +27,12 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const p = await parse(req, Patch);
   if (!p.ok) return p.res;
   const patch: Record<string, unknown> = { ...p.data };
-  if (p.data.at) patch.place = await placeAt(id, p.data.at);
+  /* 날짜나 시각이 바뀌면 그 날 그 시각에 있던 장소를 다시 붙인다 */
+  if (p.data.at || p.data.date) {
+    const cur = (await store.listExpenses(id)).find((e) => e.id === expenseId);
+    if (!cur) return notFound("지출");
+    patch.place = await placeAt(id, p.data.date ?? cur.date, p.data.at ?? cur.at);
+  }
   const expense = await store.updateExpense(id, expenseId, patch);
   return expense ? ok({ expense }) : notFound("지출");
 }
