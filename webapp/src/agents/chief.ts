@@ -17,6 +17,7 @@ import {
   type AgentContext, type AgentDef, type RunResult,
 } from "./harness";
 import { modelFor } from "./provider";
+import { sharedPhotos } from "@/lib/photos";
 import { store } from "@/lib/store";
 import { getRegion } from "@/lib/regions";
 
@@ -81,7 +82,8 @@ export async function delegate(
 export async function factsOf(tripId: string) {
   const trip = await store.getTrip(tripId);
   const pack = getRegion(trip?.region);
-  const photos = await store.listPhotos(tripId);
+  /* 같이 보는 사진만. 총괄이 답에 섞어 말하는 값이라 남의 "나만 보기" 는 뺀다 */
+  const photos = await sharedPhotos(tripId);
   const spend = await store.listExpenses(tripId);
   return {
     여행: trip && {

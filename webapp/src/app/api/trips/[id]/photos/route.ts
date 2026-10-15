@@ -3,6 +3,7 @@ import { fail, ok, parse } from "@/lib/http";
 import { guardTrip } from "@/lib/guard";
 import { store } from "@/lib/store";
 import { placeAt } from "@/lib/place";
+import { visiblePhotos } from "@/lib/photos";
 import { storePhoto } from "@/lib/blob";
 import { DATE_RE, tripDays } from "@/lib/days";
 
@@ -14,6 +15,8 @@ const New = z.object({
   takenAt: z.string().regex(/^\d{2}:\d{2}$/),
   caption: z.string().max(200).default(""),
   place: z.string().nullable().default(null),
+  /* 기본은 나만 보기. 올린 사람이 골라서 공개한다 */
+  visibility: z.enum(["private", "trip"]).default("private"),
 });
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -26,7 +29,9 @@ export async function GET(req: Request, { params }: Ctx) {
   if (!g.ok) return g.res;
   const date = new URL(req.url).searchParams.get("date");
 
-  const all = await store.listPhotos(id);
+  /* 남의 "나만 보기" 는 여기서 걸러진다. 날짜 띠의 장수도 거른 뒤에 센다 —
+     안 그러면 "3장" 이라는데 두 장만 보이는 일이 생긴다 */
+  const all = await visiblePhotos(id, g.user?.id ?? null);
   const diaries = await store.listDiaries(id);
   const days = tripDays(g.trip, all.map((p) => p.date)).map((d) => ({
     ...d,

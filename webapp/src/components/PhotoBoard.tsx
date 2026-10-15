@@ -37,6 +37,9 @@ export default function PhotoBoard({ trip }: { trip: Trip }) {
   const [diary, setDiary] = useState<Diary | null>(null);
   const [memo, setMemo] = useState("");
   const [busy, setBusy] = useState<null | "upload" | "diary">(null);
+  /* 올릴 때의 공개 범위. 기본은 나만 보기 — 올려 두고 고르는 쪽이 맞다.
+     여기서 "같이" 로 두면 그 뒤 올리는 것도 같이 보기로 들어간다 */
+  const [newShared, setNewShared] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -103,7 +106,10 @@ export default function PhotoBoard({ trip }: { trip: Trip }) {
         if (date !== sel) moved++;
         await api(`/api/trips/${trip.id}/photos`, {
           method: "POST",
-          body: JSON.stringify({ url: p.url, date, takenAt: p.takenAt ?? hhmm(fallback) }),
+          body: JSON.stringify({
+            url: p.url, date, takenAt: p.takenAt ?? hhmm(fallback),
+            visibility: newShared ? "trip" : "private",
+          }),
         });
       }
       await load();
@@ -140,6 +146,19 @@ export default function PhotoBoard({ trip }: { trip: Trip }) {
   async function remove(id: string) {
     await api(`/api/trips/${trip.id}/photos/${id}`, { method: "DELETE" });
     await load();
+  }
+
+  /** 나만 보기 ↔ 같이 보기. 올린 사람(또는 여행 주인)만 바뀐다 —
+      아니면 서버가 403 을 낸다 */
+  async function setVisibility(id: string, visibility: "private" | "trip") {
+    try {
+      await api(`/api/trips/${trip.id}/photos/${id}`, {
+        method: "PATCH", body: JSON.stringify({ visibility }),
+      });
+      await load();
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "바꾸지 못했습니다.");
+    }
   }
 
   async function moveTo(id: string, date: string) {
@@ -233,6 +252,16 @@ export default function PhotoBoard({ trip }: { trip: Trip }) {
         <section className="no-print mx-auto mt-10 max-w-3xl" aria-label="이 날 사진">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h3 className="text-lg font-bold">{sel ? `${dayLabel(sel)} 사진` : "사진"}</h3>
+            {/* 새 사진을 어떻게 올릴까 */}
+            <button
+              className="chip text-[12px]"
+              onClick={() => setNewShared((v) => !v)}
+              title={newShared
+                ? "올리는 사진을 같이 간 사람도 봅니다"
+                : "올리는 사진을 나만 봅니다. 장마다 자물쇠를 눌러 공개할 수 있습니다"}
+            >
+              새 사진: <b className="ml-1 text-brand">{newShared ? "같이 보기" : "나만 보기"}</b>
+            </button>
             <label className={`btn btn-primary cursor-pointer ${busy || !sel ? "pointer-events-none opacity-50" : ""}`}>
               {busy === "upload" ? "올리는 중…" : "사진 올리기"}
               <input
@@ -291,6 +320,17 @@ export default function PhotoBoard({ trip }: { trip: Trip }) {
                               ))}
                             </select>
                           )}
+                          {/* 나만 보기면 자물쇠. 눌러서 공개로 바꾼다 */}
+                          <button
+                            aria-label={p.visibility === "private" ? "같이 보기로 바꾸기" : "나만 보기로 바꾸기"}
+                            title={p.visibility === "private"
+                              ? "나만 보고 있습니다 — 눌러 같이 보기로"
+                              : "같이 보고 있습니다 — 눌러 나만 보기로"}
+                            onClick={() => setVisibility(p.id, p.visibility === "private" ? "trip" : "private")}
+                            className="rounded bg-black/40 px-1"
+                          >
+                            {p.visibility === "private" ? "🔒" : "👨‍👩‍👧"}
+                          </button>
                           <button aria-label="사진 지우기" onClick={() => remove(p.id)}
                             className="rounded bg-black/40 px-1">✕</button>
                         </span>

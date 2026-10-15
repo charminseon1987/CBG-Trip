@@ -271,6 +271,10 @@ export const CREATE_SQL = [
      trip_id TEXT PRIMARY KEY REFERENCES trips(id) ON DELETE CASCADE,
      items TEXT NOT NULL, tips TEXT NOT NULL DEFAULT '[]',
      rough INTEGER NOT NULL DEFAULT 0, made_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+  /* 한 번만 돌아야 하는 손질을 기억하는 곳. 마이그레이션 도구가 없으니
+     PATCH_SQL 이 매번 도는데, "기존 사진을 공개로" 같은 손질은 두 번 돌면
+     나중에 올린 "나만 보기" 까지 공개로 뒤집는다 */
+  `CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT NOT NULL)`,
   `PRAGMA foreign_keys = ON`,
 ];
 
@@ -308,6 +312,19 @@ export const PATCH_SQL = [
   `ALTER TABLE expenses ADD COLUMN date TEXT NOT NULL DEFAULT ''`,
   `UPDATE expenses SET date = (SELECT date FROM trips WHERE trips.id = expenses.trip_id)
      WHERE date = ''`,
+  /* 쓰던 사진을 "같이 보기" 로 올린다. visibility 칸은 기본값이 private 이라
+     거르기를 시작하는 순간 가족 사진이 서로에게서 사라진다 — 지금까지 다
+     보고 있었으니 그게 맞다.
+
+     이 세 줄은 **한 번만** 돌아야 한다. 매번 돌면 나중에 누가 "나만 보기" 로
+     둔 사진까지 공개로 뒤집힌다. 그래서 meta 에 표식을 남기고, 표식이
+     pending 일 때만 바꾼다. 두 번째부터는 done 이라 조건이 걸려 아무것도
+     안 바뀐다. */
+  `INSERT OR IGNORE INTO meta (k, v) VALUES ('photos_visibility_backfill', 'pending')`,
+  `UPDATE photos SET visibility = 'trip'
+     WHERE visibility = 'private'
+       AND (SELECT v FROM meta WHERE k = 'photos_visibility_backfill') = 'pending'`,
+  `UPDATE meta SET v = 'done' WHERE k = 'photos_visibility_backfill'`,
   /* 하루용 일정을 날짜별 표의 첫날로 옮겨 적는다. 여러 번 돌아도 안전하다 */
   `INSERT OR IGNORE INTO itinerary_days (trip_id, date, items, start, busy, cursor, updated_at)
      SELECT i.trip_id, t.date, i.items, i.start, i.busy, i.cursor, i.updated_at

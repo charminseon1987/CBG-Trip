@@ -119,6 +119,9 @@ export interface Photo {
   /* 누가 올렸나. 여럿이 같은 여행을 보니, 자기 사진은 자기가 고치고
      지울 수 있어야 한다. 옛 사진은 NULL — 그때는 한 사람뿐이었다 */
   userId: string | null;
+  /* "private" 나만 · "trip" 같이 간 사람 전부.
+     새로 올리는 사진은 나만 보기로 들어간다 — 올린 사람이 골라 공개한다 */
+  visibility: "private" | "trip";
 }
 
 export type ExpenseCategory = "ticket" | "car" | "food" | "snack" | "gift" | "etc";

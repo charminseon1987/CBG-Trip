@@ -13,6 +13,7 @@ import { z } from "zod";
 import { DIARY } from "@/agents/prompts";
 import { hasModel, modelFor, promptSuffix, providerId } from "@/agents/provider";
 import { tripDays } from "./days";
+import { sharedPhotos } from "./photos";
 import { store } from "./store";
 import type { Diary, DiaryStop, Photo, Trip } from "./types";
 
@@ -159,9 +160,13 @@ function writeByRule(
 export async function makeDiary(tripId: string, date: string, memo = ""): Promise<Diary | { error: string }> {
   const trip = await store.getTrip(tripId);
   if (!trip) return { error: "여행을 찾지 못했습니다." };
-  const all = await store.listPhotos(tripId);
+  /* 일기는 멤버 전부가 보는 한 장이다. 남의 "나만 보기" 를 끼워 넣으면
+     앨범에서는 안 보이는 사진이 일기에서는 보이게 된다 */
+  const all = await sharedPhotos(tripId);
   const photos = all.filter((p) => p.date === date);
-  if (!photos.length) return { error: "이 날짜에 올린 사진이 없습니다. 사진을 먼저 올려 주세요." };
+  if (!photos.length) {
+    return { error: "이 날짜에 같이 보는 사진이 없습니다. 사진을 올리고 '같이 보기' 로 두세요." };
+  }
 
   const day = tripDays(trip, [date]).find((d) => d.date === date)?.day ?? null;
   const stops = stopsOf(photos);

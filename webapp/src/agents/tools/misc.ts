@@ -3,6 +3,7 @@ import { tool } from "ai";
 import { z } from "zod";
 import { compute, hm, toMin } from "@/lib/itinerary";
 import { getRegion } from "@/lib/regions";
+import { sharedPhotos } from "@/lib/photos";
 import { store } from "@/lib/store";
 import { makeDiary } from "@/lib/diary";
 import { EXPENSE_CATEGORIES } from "@/lib/types";
@@ -32,7 +33,10 @@ export function albumTools({ tripId }: AgentContext) {
       description: "저장된 사진 수, 날짜별·일정 블록별 장수, 캡션이 있는 장수, 일기가 있는 날짜.",
       inputSchema: z.object({}),
       execute: async () => {
-        const photos = await store.listPhotos(tripId);
+        /* 에이전트는 보는 사람을 모른다(AgentContext 에 tripId 뿐). 그래서
+           같이 보는 사진만 센다 — 공동 대화에서 남의 "나만 보기" 를 세어
+           주면 그 자체가 새는 것이다 */
+        const photos = await sharedPhotos(tripId);
         const byDate: Record<string, number> = {};
         const by: Record<string, number> = {};
         for (const p of photos) {
@@ -55,7 +59,10 @@ export function albumTools({ tripId }: AgentContext) {
       description: "캡션이 비어 있는 사진의 시각과 장소 목록.",
       inputSchema: z.object({}),
       execute: async () => {
-        const photos = await store.listPhotos(tripId);
+        /* 에이전트는 보는 사람을 모른다(AgentContext 에 tripId 뿐). 그래서
+           같이 보는 사진만 센다 — 공동 대화에서 남의 "나만 보기" 를 세어
+           주면 그 자체가 새는 것이다 */
+        const photos = await sharedPhotos(tripId);
         return {
           missing: photos
             .filter((p) => !p.caption)
