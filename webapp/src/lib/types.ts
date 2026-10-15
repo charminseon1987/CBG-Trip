@@ -114,6 +114,9 @@ export interface Photo {
   takenAt: string;          // "13:40"
   caption: string;
   place: string | null;     // 그 시각에 있던 일정 블록
+  /* 누가 올렸나. 여럿이 같은 여행을 보니, 자기 사진은 자기가 고치고
+     지울 수 있어야 한다. 옛 사진은 NULL — 그때는 한 사람뿐이었다 */
+  userId: string | null;
 }
 
 export type ExpenseCategory = "ticket" | "car" | "food" | "snack" | "gift" | "etc";

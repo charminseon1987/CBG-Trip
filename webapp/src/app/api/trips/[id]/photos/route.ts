@@ -58,5 +58,9 @@ export async function POST(req: Request, { params }: Ctx) {
     console.error("[photos] 사진 저장 실패:", why);
     return fail("storage_failed", `사진을 저장하지 못했습니다. ${why}`, 502);
   }
-  return ok({ photo: await store.addPhoto(id, { ...p.data, url, date, place }) }, { status: 201 });
+  /* 올린 사람을 적어 둔다. 이걸 빼먹으면 내 사진을 내가 고치는지도 못 알아본다 */
+  const photo = await store.addPhoto(id, {
+    ...p.data, url, date, place, userId: g.user?.id ?? null,
+  });
+  return ok({ photo }, { status: 201 });
 }
