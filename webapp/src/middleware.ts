@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { COOKIE } from "@/lib/session-cookie";
 
 /* 로그인 없이 지나갈 수 있는 길 */
-const OPEN = ["/login", "/setup", "/api/auth/", "/api/health"];
+const OPEN = ["/login", "/signup", "/setup", "/api/auth/", "/api/health"];
 
 /**
  * 쿠키가 "있는지" 만 본다. 토큰이 진짜인지는 확인하지 않는다 —
