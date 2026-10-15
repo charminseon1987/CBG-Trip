@@ -16,7 +16,8 @@ export async function GET(_req: Request, { params }: Ctx) {
      목록에 뜨면 "아직 안 온 사람" 이 누구인지까지 새어 나간다 */
   return ok({
     members: await listMembers(id),
-    me: { role: g.role, canEdit: g.canEdit, canManage: g.canManage },
+    /* 내 userId 도 같이 — 목록에서 "나" 를 가려내고, 스스로 나가는 단추를 붙인다 */
+    me: { id: g.user?.id ?? null, role: g.role, canEdit: g.canEdit, canManage: g.canManage },
     invites: g.canManage
       ? (await liveInvites(id)).map((i) => ({
           /* 토큰 해시는 취소할 때 쓰는 손잡이다. 이걸로는 들어갈 수 없다 */
