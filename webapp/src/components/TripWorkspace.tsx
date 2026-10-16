@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import LedgerBoard from "./LedgerBoard";
 import MembersBoard from "./MembersBoard";
+import ChatBoard from "./ChatBoard";
 import ChiefDock from "./ChiefDock";
 import PlanBoard, { type PlanPayload } from "./PlanBoard";
 import PhotoBoard from "./PhotoBoard";
@@ -22,6 +23,7 @@ const TABS = [
   { id: "album", label: "사진 · 일기" },
   { id: "ledger", label: "가계부" },
   { id: "crew", label: "함께" },
+  { id: "talk", label: "대화" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
@@ -80,6 +82,12 @@ export default function TripWorkspace({ trip, map }: { trip: Trip; map: MapInfo 
         {tab === "album" && <PhotoBoard trip={trip} />}
         {tab === "ledger" && <LedgerBoard trip={trip} />}
         {tab === "crew" && <MembersBoard trip={trip} />}
+        {tab === "talk" && (
+          <ChatBoard
+            room={{ kind: "trip", tripId: trip.id, title: trip.title }}
+            shareable={[{ id: trip.id, title: trip.title }]}
+          />
+        )}
       </main>
 
       <ChiefDock tripId={trip.id} onChanged={reload} />

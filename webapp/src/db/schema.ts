@@ -154,6 +154,35 @@ export const tripJoinRequests = sqliteTable("trip_join_requests", {
   decidedBy: text("decided_by").references(() => users.id, { onDelete: "set null" }),
 }, (t) => [primaryKey({ columns: [t.tripId, t.userId] }), index("joins_user").on(t.userId)]);
 
+/* 대화.
+
+   방 두 가지를 한 표에 담는다 — room 문자열이 어느 방인지 말한다.
+     trip:<여행 id>      그 여행 멤버들의 그룹 대화
+     dm:<작은 id>:<큰 id>  두 사람 사이. 정렬해서 붙이므로 쌍마다 방이 하나다
+
+   표를 둘로 쪼개지 않은 까닭: 읽는 길(최근 50개 가져오기)과 쓰는 길이 똑같고,
+   "안 읽은 수" 계산도 같다. 다른 것은 **누가 들어갈 수 있나** 뿐인데 그건
+   lib/chat.ts 가 방 이름을 보고 판정한다.
+
+   shareTripId 는 메시지에 붙인 여행 카드다. 신청한 사람과 주인이 대화하다
+   "이 여행이에요" 하고 건넬 때 쓴다. 카드에는 제목·지역·날짜까지만 실린다 —
+   멤버가 아니면 눌러도 404 다. 대화로 안을 들여다보는 길을 만들지 않는다. */
+export const chatMessages = sqliteTable("chat_messages", {
+  id: text("id").primaryKey(),
+  room: text("room").notNull(),
+  authorId: text("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  body: text("body").notNull().default(""),
+  shareTripId: text("share_trip_id").references(() => trips.id, { onDelete: "set null" }),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (t) => [index("chat_room").on(t.room, t.createdAt)]);
+
+/* 어디까지 읽었나. 방마다 사람마다 한 줄 — "안 읽은 3" 을 세는 데 쓴다 */
+export const chatReads = sqliteTable("chat_reads", {
+  room: text("room").notNull(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  readAt: text("read_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (t) => [primaryKey({ columns: [t.room, t.userId] })]);
+
 /* 공동 일정 위에 얹는 **개인 레이어**.
 
    일정 사본을 뜨지 않는 이유: 사본은 그 순간 갈라져서, 주인이 공동 일정을
@@ -242,6 +271,19 @@ export const CREATE_SQL = [
      items TEXT NOT NULL, start TEXT NOT NULL DEFAULT '09:00',
      busy INTEGER NOT NULL DEFAULT 0, cursor INTEGER NOT NULL DEFAULT 0,
      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+  `CREATE TABLE IF NOT EXISTS chat_messages (
+     id TEXT PRIMARY KEY,
+     room TEXT NOT NULL,
+     author_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     body TEXT NOT NULL DEFAULT '',
+     share_trip_id TEXT REFERENCES trips(id) ON DELETE SET NULL,
+     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+  `CREATE INDEX IF NOT EXISTS chat_room ON chat_messages(room, created_at)`,
+  `CREATE TABLE IF NOT EXISTS chat_reads (
+     room TEXT NOT NULL,
+     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     read_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     PRIMARY KEY (room, user_id))`,
   `CREATE TABLE IF NOT EXISTS trip_join_requests (
      trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

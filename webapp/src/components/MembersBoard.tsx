@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import CatFace from "./CatFace";
+import ChatBoard from "./ChatBoard";
 import { api } from "@/lib/api";
 import type { Trip } from "@/lib/types";
 
@@ -54,6 +55,8 @@ export default function MembersBoard({ trip }: { trip: Trip }) {
   /* 어느 링크를 복사했는지 (손잡이) */
   const [copied, setCopied] = useState<string | null>(null);
   const [openToSearch, setOpenToSearch] = useState(!!trip.discoverable);
+  /* 누구와 일대일로 말하는 중인가 */
+  const [dm, setDm] = useState<{ userId: string; name: string } | null>(null);
   const [label, setLabel] = useState("");
   const [role, setRole] = useState<"editor" | "viewer">("editor");
   /* 신청마다 어떤 권한으로 들일지 — 주인이 고른다 */
@@ -148,6 +151,26 @@ export default function MembersBoard({ trip }: { trip: Trip }) {
   const manage = d?.me.canManage ?? false;
   const reqs = d?.requests ?? [];
 
+  /* 일대일 대화를 열면 그 위에 덮는다. 함께 탭을 떠나지 않고 묻고 답한다 */
+  if (dm) {
+    return (
+      <div className="mx-auto flex h-full w-full max-w-3xl flex-col px-5 py-4">
+        <div className="flex flex-none items-center gap-2">
+          <button className="btn btn-ghost px-2 py-1 text-sm" onClick={() => setDm(null)}>
+            ← 함께
+          </button>
+          <b className="truncate">{dm.name} 와의 대화</b>
+        </div>
+        <div className="min-h-0 flex-1">
+          <ChatBoard
+            room={{ kind: "dm", userId: dm.userId, name: dm.name }}
+            shareable={[{ id: trip.id, title: trip.title }]}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto h-full w-full max-w-3xl overflow-y-auto px-5 py-6 pb-28">
       <div className="flex items-end justify-between gap-3">
@@ -212,13 +235,20 @@ export default function MembersBoard({ trip }: { trip: Trip }) {
                       내보내기
                     </button>
                   )}
-                  {self && (
+                  {self ? (
                     <button
                       className="btn btn-ghost px-2 py-1 text-sm"
                       disabled={busy}
                       onClick={leave}
                     >
                       나가기
+                    </button>
+                  ) : (
+                    <button
+                      className="btn btn-ghost px-2 py-1 text-sm"
+                      onClick={() => setDm({ userId: m.userId, name: m.name || m.email })}
+                    >
+                      말 걸기
                     </button>
                   )}
                 </li>
@@ -273,6 +303,11 @@ export default function MembersBoard({ trip }: { trip: Trip }) {
                           <button className="btn btn-ghost px-3 py-1.5 text-sm"
                             disabled={busy} onClick={() => decide(q.userId, false)}>
                             거절
+                          </button>
+                          {/* 누군지 먼저 물어볼 수 있어야 한다 — 신청자와 바로 대화 */}
+                          <button className="btn px-3 py-1.5 text-sm"
+                            onClick={() => setDm({ userId: q.userId, name: q.name || q.email })}>
+                            말 걸기
                           </button>
                           <span className="text-xs text-muted">
                             {ROLE_WHAT[give[q.userId] ?? "viewer"]}
