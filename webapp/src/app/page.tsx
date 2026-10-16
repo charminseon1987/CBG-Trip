@@ -7,6 +7,7 @@ import { isLocal, modelName, providerId } from "@/agents/provider";
 import CatFace from "@/components/CatFace";
 import UserMenu from "@/components/UserMenu";
 import NewTripForm from "@/components/NewTripForm";
+import TripSearch from "@/components/TripSearch";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,9 @@ export default async function Home() {
         })}
         <NewTripForm />
       </section>
+
+      {/* 초대 링크를 못 받은 사람도 들어올 길 — 주인이 켜 둔 여행만 찾힌다 */}
+      <TripSearch />
 
       <section className="mt-12">
         <h2 className="flex items-center gap-2 text-lg font-bold">

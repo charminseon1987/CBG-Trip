@@ -19,8 +19,13 @@ interface LiveInvite {
   /** 링크 전체. 쓰던 DB 의 옛 초대장은 원문이 없어 null 이다 */
   url: string | null;
 }
+/** 들어오고 싶다는 사람 */
+interface JoinReq {
+  userId: string; name: string; email: string; message: string; createdAt: string;
+}
 interface Payload {
   members: Member[];
+  requests: JoinReq[];
   me: { id: string | null; role: Role | null; canEdit: boolean; canManage: boolean };
   invites: LiveInvite[];
 }
@@ -48,8 +53,11 @@ export default function MembersBoard({ trip }: { trip: Trip }) {
   const [justMade, setJustMade] = useState<string | null>(null);
   /* 어느 링크를 복사했는지 (손잡이) */
   const [copied, setCopied] = useState<string | null>(null);
+  const [openToSearch, setOpenToSearch] = useState(!!trip.discoverable);
   const [label, setLabel] = useState("");
   const [role, setRole] = useState<"editor" | "viewer">("editor");
+  /* 신청마다 어떤 권한으로 들일지 — 주인이 고른다 */
+  const [give, setGive] = useState<Record<string, "editor" | "viewer">>({});
 
   const load = useCallback(async () => {
     try {
@@ -115,12 +123,30 @@ export default function MembersBoard({ trip }: { trip: Trip }) {
     router.refresh();
   });
 
+  /** 신청에 답한다. 허용하면 그 자리에서 권한을 정해 멤버가 된다 */
+  const decide = (userId: string, allow: boolean) => run(async () => {
+    await api(`/api/trips/${trip.id}/requests/${userId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ allow, role: give[userId] ?? "viewer" }),
+    });
+    await load();
+  });
+
+  /** 검색에 내놓을까. 주인만 바꿀 수 있다 */
+  const setDiscoverable = (on: boolean) => run(async () => {
+    await api(`/api/trips/${trip.id}`, {
+      method: "PATCH", body: JSON.stringify({ discoverable: on }),
+    });
+    setOpenToSearch(on);
+  });
+
   const revoke = (h: string) => run(async () => {
     await api(`/api/trips/${trip.id}/invites/${h}`, { method: "DELETE" });
     await load();
   });
 
   const manage = d?.me.canManage ?? false;
+  const reqs = d?.requests ?? [];
 
   return (
     <div className="mx-auto h-full w-full max-w-3xl overflow-y-auto px-5 py-6 pb-28">
@@ -207,6 +233,74 @@ export default function MembersBoard({ trip }: { trip: Trip }) {
             </p>
           ) : (
             <>
+              {/* 들어오고 싶다는 사람 — 있을 때만, 맨 위에 */}
+              {reqs.length > 0 && (
+                <section className="mt-7">
+                  <h3 className="font-bold">
+                    들어오고 싶다는 사람
+                    <span className="chip chip-solid ml-2 bg-brand text-[11px]">{reqs.length}</span>
+                  </h3>
+                  <p className="mt-0.5 text-sm text-ink-2">
+                    검색으로 이 여행을 찾은 사람입니다. 허용할 때 <b>어디까지 보여 줄지</b> 같이 정합니다.
+                    허용하기 전에는 제목·지역·날짜 말고는 아무것도 못 봅니다.
+                  </p>
+                  <ul className="mt-2 flex flex-col gap-2">
+                    {reqs.map((q) => (
+                      <li key={q.userId}
+                        className="rounded-2xl border-2 border-brand bg-brand-soft px-4 py-3">
+                        <p className="font-bold">{q.name || q.email}</p>
+                        <p className="font-mono text-[12px] text-muted">{q.email}</p>
+                        {q.message && (
+                          <p className="mt-1 rounded-lg bg-card px-3 py-2 text-sm text-ink-2">
+                            “{q.message}”
+                          </p>
+                        )}
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <select
+                            value={give[q.userId] ?? "viewer"}
+                            onChange={(e) =>
+                              setGive((v) => ({ ...v, [q.userId]: e.target.value as "editor" | "viewer" }))}
+                            aria-label={`${q.name || q.email} 에게 줄 권한`}
+                            className="rounded-lg border border-rule bg-card px-2 py-1.5 text-sm"
+                          >
+                            <option value="viewer">보기만</option>
+                            <option value="editor">같이 고침</option>
+                          </select>
+                          <button className="btn btn-primary px-3 py-1.5 text-sm"
+                            disabled={busy} onClick={() => decide(q.userId, true)}>
+                            허용
+                          </button>
+                          <button className="btn btn-ghost px-3 py-1.5 text-sm"
+                            disabled={busy} onClick={() => decide(q.userId, false)}>
+                            거절
+                          </button>
+                          <span className="text-xs text-muted">
+                            {ROLE_WHAT[give[q.userId] ?? "viewer"]}
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {/* 검색에 내놓을까 */}
+              <section className="mt-7">
+                <h3 className="font-bold">검색으로 찾을 수 있게</h3>
+                <p className="mt-0.5 text-sm text-ink-2">
+                  켜면 다른 사람이 여행 이름이나 지역으로 이 여행을 찾아 <b>신청</b>할 수 있습니다.
+                  찾은 사람에게 보이는 것은 제목·지역·날짜·인원까지입니다 —
+                  일정·사진·가계부는 당신이 허용한 뒤에만 보입니다.
+                </p>
+                <button
+                  className={`btn mt-2 px-3 py-1.5 text-sm ${openToSearch ? "btn-primary" : ""}`}
+                  disabled={busy}
+                  onClick={() => setDiscoverable(!openToSearch)}
+                >
+                  {openToSearch ? "지금: 찾을 수 있음 — 끄기" : "지금: 숨어 있음 — 켜기"}
+                </button>
+              </section>
+
               <section className="mt-7">
                 <h3 className="font-bold">초대 링크 만들기</h3>
                 <p className="mt-0.5 text-sm text-ink-2">

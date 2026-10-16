@@ -2,6 +2,8 @@ import { z } from "zod";
 import { fail, ok, parse } from "@/lib/http";
 import { store } from "@/lib/store";
 import { currentUser } from "@/lib/auth";
+import { myRequests } from "@/lib/joins";
+import { hasDb } from "@/db/client";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +20,10 @@ const NewTrip = z.object({
 /** GET /api/trips */
 export async function GET() {
   const me = await currentUser();
-  return ok({ trips: await store.listTrips(me) });
+  /* 내가 넣은 신청도 같이 — 안 보여 주면 사람이 같은 신청을 또 넣는다.
+     메모리 구현에는 신청 표가 없으니 빈 배열이다 */
+  const requests = me && hasDb() ? await myRequests(me.id).catch(() => []) : [];
+  return ok({ trips: await store.listTrips(me), requests });
 }
 
 /** POST /api/trips — 새 여행. region 을 주지 않으면 장소 이름으로 지역팩을 짐작한다. */

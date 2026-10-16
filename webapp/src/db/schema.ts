@@ -41,6 +41,9 @@ export const trips = sqliteTable("trips", {
   theme: text("theme").notNull().default("가족"),
   region: text("region"),                    // 지역팩 키 · null 이면 설계 담당
   builtin: integer("builtin", { mode: "boolean" }).notNull().default(false),
+  /* 검색에 나올까. 기본은 꺼짐 — 가족 여행 제목·날짜가 남에게 보이면 안 된다.
+     주인이 켜면 제목·지역·날짜까지만 보이고, 일정·사진·가계부는 승인 뒤에만 보인다 */
+  discoverable: integer("discoverable", { mode: "boolean" }).notNull().default(false),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -132,6 +135,25 @@ export const tripInvites = sqliteTable("trip_invites", {
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (t) => [index("invites_trip").on(t.tripId)]);
 
+/* "저도 끼워 주세요" — 검색으로 찾은 사람이 넣는 신청.
+
+   초대 링크는 주인이 먼저 손을 내미는 길이다. 이건 반대 방향 — 찾은 사람이
+   문을 두드리고 주인이 열어 준다. 주인이 열 때 권한도 같이 정한다
+   (보기만 / 같이 고침). 그래서 신청만으로는 아무것도 못 본다.
+
+   PK 를 (trip_id, user_id) 로 둔다 — 한 사람이 같은 여행에 신청을 쌓지 못하게.
+   거절당한 사람이 다시 신청하는 것은 같은 줄을 pending 으로 되돌리는 일이다. */
+export const tripJoinRequests = sqliteTable("trip_join_requests", {
+  tripId: text("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  /* "엄마 친구예요" 처럼 한 줄. 주인이 누군지 가늠하는 데 쓴다 */
+  message: text("message").notNull().default(""),
+  status: text("status").notNull().default("pending"),   // pending | approved | rejected
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  decidedAt: text("decided_at"),
+  decidedBy: text("decided_by").references(() => users.id, { onDelete: "set null" }),
+}, (t) => [primaryKey({ columns: [t.tripId, t.userId] }), index("joins_user").on(t.userId)]);
+
 /* 공동 일정 위에 얹는 **개인 레이어**.
 
    일정 사본을 뜨지 않는 이유: 사본은 그 순간 갈라져서, 주인이 공동 일정을
@@ -220,6 +242,15 @@ export const CREATE_SQL = [
      items TEXT NOT NULL, start TEXT NOT NULL DEFAULT '09:00',
      busy INTEGER NOT NULL DEFAULT 0, cursor INTEGER NOT NULL DEFAULT 0,
      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+  `CREATE TABLE IF NOT EXISTS trip_join_requests (
+     trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     message TEXT NOT NULL DEFAULT '',
+     status TEXT NOT NULL DEFAULT 'pending',
+     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     decided_at TEXT, decided_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+     PRIMARY KEY (trip_id, user_id))`,
+  `CREATE INDEX IF NOT EXISTS joins_user ON trip_join_requests(user_id)`,
   `CREATE TABLE IF NOT EXISTS itinerary_days (
      trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
      date TEXT NOT NULL,
@@ -312,6 +343,8 @@ export const PATCH_SQL = [
   `ALTER TABLE expenses ADD COLUMN date TEXT NOT NULL DEFAULT ''`,
   `UPDATE expenses SET date = (SELECT date FROM trips WHERE trips.id = expenses.trip_id)
      WHERE date = ''`,
+  /* 검색 노출 스위치. 쓰던 여행은 전부 꺼진 상태로 들어간다 — 기본이 0 이다 */
+  `ALTER TABLE trips ADD COLUMN discoverable INTEGER NOT NULL DEFAULT 0`,
   /* 쓰던 사진을 "같이 보기" 로 올린다. visibility 칸은 기본값이 private 이라
      거르기를 시작하는 순간 가족 사진이 서로에게서 사라진다 — 지금까지 다
      보고 있었으니 그게 맞다.

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { fail, ok, parse } from "@/lib/http";
 import { guardTrip } from "@/lib/guard";
 import { createInvite, listMembers, liveInvites } from "@/lib/members";
+import { pendingRequests } from "@/lib/joins";
 
 export const dynamic = "force-dynamic";
 type Ctx = { params: Promise<{ id: string }> };
@@ -16,6 +17,9 @@ export async function GET(req: Request, { params }: Ctx) {
      목록에 뜨면 "아직 안 온 사람" 이 누구인지까지 새어 나간다 */
   return ok({
     members: await listMembers(id),
+    /* 들어오고 싶다는 사람. 주인에게만 — 누가 문을 두드렸다는 것 자체가
+       그 사람의 일이다 */
+    requests: g.canManage ? await pendingRequests(id) : [],
     /* 내 userId 도 같이 — 목록에서 "나" 를 가려내고, 스스로 나가는 단추를 붙인다 */
     me: { id: g.user?.id ?? null, role: g.role, canEdit: g.canEdit, canManage: g.canManage },
     invites: g.canManage

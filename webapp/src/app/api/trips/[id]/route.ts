@@ -14,6 +14,8 @@ const Patch = z.object({
   people: z.number().int().min(1).max(30).optional(),
   theme: z.string().max(20).optional(),
   region: z.string().nullable().optional(),
+  /* 검색에 나올까. 주인만 바꾼다 — 아래 PATCH 에서 따로 막는다 */
+  discoverable: z.boolean().optional(),
 });
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -33,6 +35,10 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if (no) return no;
   const p = await parse(req, Patch);
   if (!p.ok) return p.res;
+  /* 검색에 내놓는 것은 주인의 결정이다. editor 가 남의 여행을 세상에 열면 안 된다 */
+  if (p.data.discoverable !== undefined && !g.canManage) {
+    return fail("forbidden", "검색 노출은 여행 주인만 바꿀 수 있습니다.", 403);
+  }
   const trip = await store.updateTrip(id, p.data);
   return trip ? ok({ trip }) : notFound("여행");
 }

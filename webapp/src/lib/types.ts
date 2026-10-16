@@ -63,6 +63,8 @@ export interface Trip {
   theme: string;
   region: string | null;         // 지역팩 키 · 없으면 설계 에이전트가 맡는다
   builtin?: boolean;
+  /* 검색에 나올까. 주인이 켠다. 기본은 꺼짐 */
+  discoverable?: boolean;
   createdAt: string;
 }
 
