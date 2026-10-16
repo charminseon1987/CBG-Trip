@@ -1,8 +1,57 @@
 # 배포 — 어디까지 했고 다음에 무엇을 하나
 
-마지막 갱신 2026-10-14. **배포했다** — https://cbg-trip.vercel.app
+마지막 갱신 2026-10-16. **배포돼 있다** — https://cbg-trip.vercel.app
 Turso 가 붙은 것까지 확인했다(`/api/health` → `"store":"libsql"`).
-남은 것은 관리자 자리 하나 — 아래 "지금 걸린 것" 을 먼저 읽을 것.
+
+올리는 법: `cd webapp && npx vercel deploy --prod`.
+프리뷰(`npx vercel deploy`)는 Vercel 인증에 막혀 있어 브라우저로 바로 못 본다 —
+`npx vercel curl /api/health --deployment <주소>` 로 두드린다. Git Bash 에서는
+`export MSYS_NO_PATHCONV=1` 을 먼저 해야 경로가 안 깨진다.
+
+2026-10-16 에 올린 것: 함께 탭(멤버·초대 링크 상시 표시) · 회원가입(코드 없이) ·
+권한 구멍 수정 · 여러 날 여행(일정 날짜별·가계부 날짜·사진 날짜별 장소) ·
+사진 공개 범위(기본 나만 보기) · 검색→신청→승인 · 대화(그룹 + 일대일 + 여행 카드).
+
+## 다른 컴퓨터에서 이어서 하기 (맥북)
+
+git 에 안 올라가는 것이 다섯 가지다. 코드만 받아서는 안 돈다.
+
+```bash
+git clone https://github.com/charminseon1987/CBG-Trip.git
+cd CBG-Trip/webapp && npm install
+```
+
+1. **Vercel 연결** (`webapp/.vercel/`)
+   ```bash
+   npx vercel login        # charminseon1987
+   npx vercel link         # 기존 프로젝트 cbg-trip 을 고른다
+   ```
+2. **배포 환경변수** — 값은 Vercel 에만 있다. 내려받는다:
+   ```bash
+   npx vercel env pull .env.production.local --environment=production
+   ```
+   `sensitive` 타입(TURSO_*·BLOB_READ_WRITE_TOKEN)은 값이 빈 문자열로 온다.
+   그건 원래 안 내려온다 — 배포된 런타임 안에서만 보인다.
+3. **로컬 개발용 `webapp/.env.local`** — 직접 만든다. 최소한 이것만 있으면 된다:
+   ```
+   DATABASE_URL=file:./data/trip.db
+   ```
+   모델을 쓰려면 `AGENT_PROVIDER`·`AGENT_BASE_URL`·`AGENT_API_KEY`
+   (또는 `ANTHROPIC_API_KEY` + `ANTHROPIC_WORKSPACE_ID`) 를 더한다.
+   `.env.example` 에 이름이 다 있다.
+4. **로컬 DB** (`webapp/data/trip.db`) — 안 가져가도 된다. 비어 있으면 첫 요청에
+   표가 만들어지고 `/setup` 으로 관리자를 만든다(`SETUP_CODE` 없이 로컬에서는 된다).
+   윈도우 기계의 것을 쓰고 싶으면 그 파일만 복사한다. 비밀번호는 로컬과 배포가
+   다르니 `node scripts/set-local-password.mjs <메일> <새비번>` 으로 정한다.
+5. **`webapp/.env.turso`** — 안 가져가도 된다. 그리고 이건 **프로덕션 DB 가 아니다**
+   (같은 데이터가 든 별개 DB). 배포본 확인은 앱의 API 로 한다.
+
+로컬에서 띄우기:
+```bash
+cd webapp && npm run build && npx next start -p 3100
+```
+맥에서는 포트를 `lsof -ti:3100 | xargs kill -9` 로 비운다
+(윈도우의 `Get-NetTCPConnection` 자리).
 
 ## 관리자 자리 — 풀렸다
 
@@ -33,6 +82,12 @@ Turso 를 직접 열어 보니 이유가 나왔다 — **로컬 `trip.db` 가 �
 (`BLOB_READ_WRITE_TOKEN` 이 Production 에 들어 있다).
 
 ### Turso 를 직접 들여다보려면
+
+**주의 (2026-10-16 에 알아낸 것): `webapp/.env.turso` 가 가리키는 DB 는
+프로덕션이 쓰는 DB 가 아니다.** 같은 가족 데이터(사람 3·여행 4·사진 6)가 들어
+있지만 마이그레이션이 한 번도 안 들어간 별개 DB 다. 이걸로 "배포본에 표가
+생겼나" 를 확인하면 엉뚱한 답을 얻는다 — 확인은 배포된 앱의 API 로 한다.
+프리뷰 배포는 또 다른 분기(branch) DB 를 쓴다.
 
 `webapp/.env.turso` 에 자격증명을 받아 뒀다 (git 에 안 올라간다).
 받은 곳: Vercel > cbg-trip > 왼쪽 사이드바 **Storage** > `cbg-trip-db`
