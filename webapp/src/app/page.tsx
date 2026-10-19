@@ -8,6 +8,7 @@ import CatFace from "@/components/CatFace";
 import UserMenu from "@/components/UserMenu";
 import NewTripForm from "@/components/NewTripForm";
 import TripSearch from "@/components/TripSearch";
+import NoticeBell from "@/components/NoticeBell";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,11 @@ export default async function Home() {
         <p className="font-mono text-[12.5px] font-bold uppercase tracking-[0.18em] text-brand">
           Family trip log
         </p>
-        <UserMenu user={me} />
+        <div className="flex items-center gap-2">
+          {/* 눌러야 아는 것들을 한 자리에 — 들어온 신청·내 신청 결과·안 읽은 말 */}
+          <NoticeBell />
+          <UserMenu user={me} />
+        </div>
       </div>
       <h1 className="mt-2 text-4xl font-extrabold tracking-tight">우리 여행 기록</h1>
       <p className="mt-3 max-w-2xl text-ink-2">
