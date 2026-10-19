@@ -46,6 +46,8 @@ export interface Store {
   /* 설계 에이전트가 짠 하루 */
   getDraft(tripId: string): Promise<Draft | null>;
   putDraft(tripId: string, d: { items: DraftItem[]; tips: string[]; rough?: boolean }): Promise<Draft>;
+  /** 초안을 버린다 — 다시 짜게 할 때. 없었으면 false */
+  dropDraft?(tripId: string): Promise<boolean>;
 }
 
 export interface DraftItem {
@@ -218,6 +220,7 @@ class MemoryStore implements Store {
 
   private drafts = new Map<string, Draft>();
   async getDraft(tripId: string) { return this.drafts.get(tripId) ?? null; }
+  async dropDraft(tripId: string) { return this.drafts.delete(tripId); }
   async putDraft(tripId: string, d: { items: DraftItem[]; tips: string[]; rough?: boolean }) {
     const row: Draft = { tripId, items: d.items, tips: d.tips, rough: !!d.rough, madeAt: new Date().toISOString() };
     this.drafts.set(tripId, row);

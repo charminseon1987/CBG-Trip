@@ -193,10 +193,13 @@ export function designerTools({ tripId }: AgentContext) {
         tips: z.array(z.string()).max(4).optional(),
       }),
       execute: async ({ items, tips }) => {
-        drafts.set(tripId, { items, tips: tips ?? [], madeAt: new Date().toISOString() });
+        /* 표에 넣는다. 전에는 모듈 안의 Map 이었는데, 서버리스는 인스턴스가
+           수시로 바뀌어 다음 요청에서 사라졌다 — 도구 설명은 "화면에 바로
+           나타난다" 고 말하는데 실제로는 아무 데도 안 남았다 */
+        const row = await store.putDraft(tripId, { items, tips: tips ?? [] });
         return {
-          ok: true, count: items.length,
-          starts_at: items[0].time, ends_at: items[items.length - 1].time,
+          ok: true, count: row.items.length,
+          starts_at: row.items[0]?.time, ends_at: row.items[row.items.length - 1]?.time,
         };
       },
     }),
@@ -204,16 +207,12 @@ export function designerTools({ tripId }: AgentContext) {
     get_draft: tool({
       description: "이미 저장된 하루 일정을 돌려준다.",
       inputSchema: z.object({}),
-      execute: async () => drafts.get(tripId) ?? { items: [], message: "아직 짠 일정이 없습니다." },
+      execute: async () =>
+        (await store.getDraft(tripId)) ?? { items: [], message: "아직 짠 일정이 없습니다." },
     }),
   };
 }
 
-/* 설계 결과도 지금은 메모리에 둔다 — DB 를 붙이면 store 로 옮긴다 */
-export interface Draft {
-  items: { time: string; name: string; kind: string; minutes?: number; note?: string }[];
-  tips: string[];
-  madeAt: string;
-}
-const g = globalThis as unknown as { __drafts?: Map<string, Draft> };
-export const drafts: Map<string, Draft> = g.__drafts ?? (g.__drafts = new Map());
+/* 설계 결과는 store 가 맡는다 (DB 면 drafts 표, 없으면 메모리).
+   여기 있던 globalThis Map 은 지웠다 — 쓰던 쪽이 아무도 없었고, 서버리스에서는
+   인스턴스가 바뀌는 순간 날아갔다. */

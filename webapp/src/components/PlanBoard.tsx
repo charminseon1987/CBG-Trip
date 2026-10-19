@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CatFace from "./CatFace";
 import PlaceSheet from "./PlaceSheet";
 import ShowAlertDialog, { useShowAlert } from "./ShowAlert";
@@ -734,6 +734,98 @@ function DayStrip({ trip, day }: { trip: Trip; day: ParkDay | null }) {
 /* 일정이 아직 없는 여행의 화면.
    본 화면과 같은 세 칸 틀을 세우고, 칸마다 무엇이 들어올 자리인지 적는다.
    (지도가 없는 지역이면 가운데 칸에 설계 에이전트를 부르는 안내가 선다) */
+
+/* 설계 에이전트가 짠 하루 시간표.
+
+   지역팩이 없는 여행에는 지도도 거리 계산도 없다. 그런 여행의 일정은 이게
+   전부다. 전에는 에이전트가 짜서 저장해도 화면에 나올 길이 없었다 —
+   도구 설명만 "저장하면 화면에 바로 나타난다" 고 말하고 있었다. */
+interface DraftItem { time: string; name: string; kind: string; minutes?: number; note?: string }
+interface DraftDTO { items: DraftItem[]; tips: string[]; madeAt: string }
+
+const KIND: Record<string, string> = {
+  move: "이동", food: "먹기", see: "보기", play: "놀기",
+  rest: "쉬기", photo: "사진", stay: "묶기",
+};
+
+function DraftTable({ trip }: { trip: Trip }) {
+  const [draft, setDraft] = useState<DraftDTO | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const d = await api<{ draft: DraftDTO }>(`/api/trips/${trip.id}/draft`);
+      setDraft(d.draft);
+    } catch {
+      /* 아직 안 짰으면 404 다 — 없는 것이 정상이라 조용히 넘긴다 */
+      setDraft(null);
+    }
+  }, [trip.id]);
+
+  useEffect(() => {
+    void load();
+    /* 냥이에게 "일정 짜줘" 하면 저장은 서버에서 일어난다. 그 결과가 화면에
+       닿게 하려고 15초마다 한 번 들여다본다 */
+    const t = setInterval(() => { if (!document.hidden) void load(); }, 15_000);
+    return () => clearInterval(t);
+  }, [load]);
+
+  if (!draft?.items?.length) return null;
+
+  async function drop() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await api(`/api/trips/${trip.id}/draft`, { method: "DELETE" });
+      setDraft(null);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "버리지 못했습니다.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="font-bold">설계 에이전트가 짠 하루</h3>
+        <button className="btn btn-ghost px-2 py-1 text-xs" disabled={busy} onClick={drop}>
+          버리고 다시 짜기
+        </button>
+      </div>
+      <ol className="mt-2 flex flex-col gap-2">
+        {draft.items.map((it, i) => (
+          <li key={`${it.time}-${i}`}
+            className="rounded-xl border border-rule bg-card p-3"
+            style={{ borderLeft: "6px solid var(--brand)" }}>
+            <div className="flex flex-wrap items-baseline gap-2">
+              <span className="font-mono text-sm font-bold text-brand">{it.time}</span>
+              <b className="flex-1">{it.name}</b>
+              <span className="chip text-[11px]">{KIND[it.kind] ?? it.kind}</span>
+              {it.minutes ? (
+                <span className="font-mono text-[12px] text-muted">{it.minutes}분</span>
+              ) : null}
+            </div>
+            {it.note && <p className="mt-1 text-[12.5px] text-ink-2">{it.note}</p>}
+          </li>
+        ))}
+      </ol>
+      {draft.tips?.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-1">
+          {draft.tips.map((t, i) => (
+            <li key={i} className="rounded-lg bg-brand-soft px-3 py-2 text-[12.5px] text-brand">
+              {t}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-2 text-[11px] text-muted">
+        지도 데이터가 없는 지역이라 거리·이동 시간은 재지 않습니다. 시간표만 잡아 둡니다.
+      </p>
+    </div>
+  );
+}
+
 function EmptyFrame({
   trip, day, note, tone, mapped,
 }: { trip: Trip; day: ParkDay | null; note?: string; tone?: "bad"; mapped?: boolean }) {
@@ -757,6 +849,8 @@ function EmptyFrame({
         <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
           {slots.map((s) => <Fact key={s.k} k={s.k} v={s.v} />)}
         </dl>
+        {/* 설계 에이전트가 짠 것이 있으면 그걸 보여 준다. 없으면 빈 자리 */}
+        <DraftTable trip={trip} />
         <div className="mt-4 flex flex-col gap-2">
           {[0, 1, 2].map((i) => (
             <div key={i}

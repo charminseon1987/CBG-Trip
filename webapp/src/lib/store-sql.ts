@@ -272,4 +272,11 @@ export class SqlStore implements Store {
       .onConflictDoUpdate({ target: schema.drafts.tripId, set: row });
     return row;
   }
+
+  /** 초안을 버린다 — 설계 에이전트에게 다시 짜게 할 때 */
+  async dropDraft(tripId: string) {
+    const db = await this.seeded();
+    const r = await db.delete(schema.drafts).where(eq(schema.drafts.tripId, tripId));
+    return (r.rowsAffected ?? 0) > 0;
+  }
 }
