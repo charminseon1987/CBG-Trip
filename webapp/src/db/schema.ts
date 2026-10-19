@@ -194,6 +194,9 @@ export const chatReads = sqliteTable("chat_reads", {
 
    열 이름이 drop·add 가 아닌 까닭: 둘 다 SQL 예약어라 따옴표 없이 쓰면
    CREATE TABLE 이 깨진다. 따옴표로 감싸느니 이름을 피한다.                   */
+/* 날짜가 없는 옛 꼴. 여행 하나에 한 줄이라 "2일차에서만 빼기" 를 담을 수 없다.
+   한 번도 쓰인 적이 없고(이 표를 읽거나 쓰는 코드가 없었다) personal_days 가
+   그 자리를 대신한다. 쓰던 배포 DB 에 이미 만들어져 있어 정의만 남겨 둔다. */
 export const itineraryPersonal = sqliteTable("itinerary_personal", {
   tripId: text("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -202,6 +205,31 @@ export const itineraryPersonal = sqliteTable("itinerary_personal", {
   start: text("start"),                               // 내 출발 시각. NULL 이면 공동 것
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (t) => [primaryKey({ columns: [t.tripId, t.userId] })]);
+
+/* 공동 일정 위에 얹는 **개인 레이어** — 날마다 한 줄.
+
+   일정 사본을 뜨지 않는 이유: 사본은 그 순간 갈라져서, 주인이 공동 일정을
+   고쳐도 친구에게는 영영 안 간다. 대신 "난 여길 빼고 저길 간다" 만 적어 둔다.
+   그러면 공동 일정이 바뀌어도 내 수정이 그 위에 그대로 얹힌다.
+
+     dropped  그 날 공동 일정에서 뺄 Stop id
+     added    공동 일정에 없지만 내가 갈 Stop id (뒤에 붙는다)
+     start    내 출발 시각. NULL 이면 공동 것을 따른다
+
+   보기만 하는 사람(viewer)도 **자기 레이어는 고친다.** 공동의 것을 못 고치는
+   것과 자기 하루를 못 꾸미는 것은 다른 얘기다.
+
+   열 이름이 drop·add 가 아닌 까닭: 둘 다 SQL 예약어라 따옴표 없이 쓰면
+   CREATE TABLE 이 깨진다. */
+export const personalDays = sqliteTable("personal_days", {
+  tripId: text("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  date: text("date").notNull(),              // YYYY-MM-DD
+  dropped: text("dropped", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
+  added: text("added", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
+  start: text("start"),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (t) => [primaryKey({ columns: [t.tripId, t.userId, t.date] })]);
 
 /* 하루치 손글씨 여행일기 — 날마다 한 장 */
 export const diaries = sqliteTable("diaries", {
@@ -271,6 +299,15 @@ export const CREATE_SQL = [
      items TEXT NOT NULL, start TEXT NOT NULL DEFAULT '09:00',
      busy INTEGER NOT NULL DEFAULT 0, cursor INTEGER NOT NULL DEFAULT 0,
      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+  `CREATE TABLE IF NOT EXISTS personal_days (
+     trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     date TEXT NOT NULL,
+     dropped TEXT NOT NULL DEFAULT '[]',
+     added TEXT NOT NULL DEFAULT '[]',
+     start TEXT,
+     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     PRIMARY KEY (trip_id, user_id, date))`,
   `CREATE TABLE IF NOT EXISTS chat_messages (
      id TEXT PRIMARY KEY,
      room TEXT NOT NULL,

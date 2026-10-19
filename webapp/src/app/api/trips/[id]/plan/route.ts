@@ -4,6 +4,7 @@ import { compute, hm, turns } from "@/lib/itinerary";
 import { getRegion } from "@/lib/regions";
 import { guardTrip } from "@/lib/guard";
 import { store } from "@/lib/store";
+import { applyLayer, getLayer, isEmpty, myTouchedDates } from "@/lib/personal";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -34,6 +35,34 @@ export async function GET(req: Request, { params }: Ctx) {
     ?? { tripId: id, date, items: [], start: "09:00", busy: false, cursor: 0, updatedAt: "" };
 
   const p = compute(pack, it.items, it.start, it.busy);
+
+  /* 내 개인 레이어가 있으면 내 순서로도 한 번 계산해 같이 내려준다.
+     비어 있으면 계산하지 않는다 — 대부분은 공동 일정 그대로 간다 */
+  const layer = g.user ? await getLayer(id, g.user.id, date) : { dropped: [], added: [], start: null };
+  const touched = g.user ? await myTouchedDates(id, g.user.id) : [];
+  let mine = null;
+  if (g.user && !isEmpty(layer)) {
+    const items = applyLayer(it.items, layer);
+    const mp = compute(pack, items, layer.start ?? it.start, it.busy);
+    mine = {
+      items,
+      start: layer.start ?? it.start,
+      summary: {
+        stops: mp.rows.length,
+        total_km: +(mp.totalM / 1000).toFixed(2),
+        move_min: mp.moveMin,
+        ends_at: hm(mp.endAt),
+      },
+      rows: mp.rows.map((r, i) => ({
+        no: i + 1, id: r.id, name: r.stop.name, zone: r.stop.zl, zoneId: r.stop.zone,
+        kind: r.stop.kind, lat: r.stop.lat, lng: r.stop.lng, x: r.stop.x, y: r.stop.y,
+        at: hm(r.at), end: hm(r.end), stay: r.stay, note: r.stop.note, problem: r.problem,
+        leg: r.leg ? { m: Math.round(r.leg.m), pts: r.leg.pts } : null,
+        steps: r.leg ? turns(pack, r.leg).map((s2) => ({ m: Math.round(s2.m), turn: s2.turn })) : [],
+      })),
+    };
+  }
+
   return ok({
     mapped: true,
     region: {
@@ -46,6 +75,10 @@ export async function GET(req: Request, { params }: Ctx) {
     /* 날짜 띠와 지금 보는 날 */
     days,
     date,
+    /* 내 개인 레이어와, 그걸 얹어 계산한 내 일정 (손댄 게 없으면 mine 은 null) */
+    myLayer: layer,
+    myDates: touched,
+    mine,
     itinerary: it,
     summary: {
       stops: p.rows.length,

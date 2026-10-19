@@ -44,8 +44,26 @@ export interface DayTabDTO {
   stops: number;
 }
 
+/** 내 개인 레이어 — 공동 일정 위에 얹는 차이 */
+export interface MyLayer {
+  dropped: string[];
+  added: string[];
+  start: string | null;
+}
+
 export interface PlanPayload {
   mapped: boolean;
+  /** 내 레이어 (손댄 게 없으면 빈 배열들) */
+  myLayer?: MyLayer;
+  /** 내가 손댄 날짜들 — 날짜 띠에 표시한다 */
+  myDates?: string[];
+  /** 내 레이어를 얹어 계산한 내 일정. 손댄 게 없으면 null */
+  mine?: {
+    items: string[];
+    start: string;
+    summary: { stops: number; total_km: number; move_min: number; ends_at: string };
+    rows: PlanRowDTO[];
+  } | null;
   /** 여행의 모든 날. 하루 여행이면 한 칸 */
   days?: DayTabDTO[];
   /** 지금 보고 있는 날 */
@@ -105,10 +123,19 @@ export default function PlanBoard({
   const [day, setDay] = useState<ParkDay | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [byZone, setByZone] = useState(false);
+  /* 공동 일정을 보고 있나, 내 일정을 보고 있나.
+     내 레이어가 생기면 자동으로 내 일정 쪽으로 넘어간다 — 내가 바꾼 것이
+     화면에 안 보이면 바꾼 줄 모른다 */
+  const [showMine, setShowMine] = useState(false);
   /* 기간 고치기를 열었는가. 며칠짜리로 바꾸면 날짜 띠가 그만큼 늘어난다 */
   const [spanOpen, setSpanOpen] = useState(false);
   /* 어느 장소의 설명을 열었는가 — 일정 카드나 지도 픜을 누르면 찜다 */
   const [placeId, setPlaceId] = useState<string | null>(null);
+
+  /* 내 일정이 처음 생기면 그쪽으로 넘긴다 (한 번만) */
+  useEffect(() => {
+    if (plan?.mine) setShowMine(true);
+  }, [plan?.mine ? 1 : 0]);
 
   const region: RegionDTO | null = useMemo(
     () => (plan?.region && map ? { ...plan.region, base: map.base } : null),
@@ -194,7 +221,13 @@ export default function PlanBoard({
     return <EmptyFrame trip={trip} day={day} />;
   }
 
-  const { rows, summary, candidates = [], itinerary } = plan;
+  const { candidates = [], itinerary } = plan;
+  /* 내 일정을 보고 있으면 그 계산을 쓴다. 지도·길안내·현재 위치가 전부
+     이 rows 를 보므로, 한 군데서 갈아 끼우면 화면 전체가 내 일정이 된다 */
+  const mineOn = showMine && !!plan.mine;
+  const rows = mineOn ? plan.mine!.rows : plan.rows!;
+  const summary = mineOn ? plan.mine!.summary : plan.summary!;
+  const layer: MyLayer = plan.myLayer ?? { dropped: [], added: [], start: null };
   if (rows.length === 0) {
     return <EmptyFrame trip={trip} day={day} mapped />;
   }
@@ -258,6 +291,41 @@ export default function PlanBoard({
     }
   }
 
+  /** 내 레이어를 저장한다. 공동 일정은 건드리지 않는다 —
+      보기만 하는 사람도 여기는 쓸 수 있다 */
+  async function saveLayer(patch: Partial<MyLayer>) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await api(`/api/trips/${trip.id}/personal`, {
+        method: "PUT",
+        body: JSON.stringify({ date: plan?.date, ...patch }),
+      });
+      onChanged();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "저장하지 못했습니다.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** 난 이 곳 안 감 / 다시 감 */
+  const toggleDrop = (id: string) => {
+    const has = layer.dropped.includes(id);
+    void saveLayer({
+      dropped: has ? layer.dropped.filter((x) => x !== id) : [...layer.dropped, id],
+      added: layer.added.filter((x) => x !== id),
+    });
+  };
+
+  /** 공동 일정에 없는 곳을 나만 넣는다 */
+  const toggleAdd = (id: string) => {
+    const has = layer.added.includes(id);
+    void saveLayer({
+      added: has ? layer.added.filter((x) => x !== id) : [...layer.added, id],
+    });
+  };
+
   const setCursor = async (n: number) => {
     const c = Math.max(0, Math.min(rows.length - 1, n));
     await api(`/api/trips/${trip.id}/itinerary`, {
@@ -305,6 +373,37 @@ export default function PlanBoard({
           )}
         </div>
 
+        {/* 공동 일정 ↔ 내 일정. 내가 손댄 것이 있을 때만 고를 수 있다 */}
+        {plan?.mine && (
+          <div className="mb-2 flex flex-wrap items-center gap-1">
+            <button
+              onClick={() => setShowMine(false)}
+              aria-selected={!mineOn}
+              className={`rounded-full px-3 py-1 text-[12.5px] transition ${
+                !mineOn ? "bg-brand font-bold text-white" : "text-muted hover:bg-paper"
+              }`}
+            >
+              공동 일정 <span className="opacity-70">{plan.summary?.stops}곳</span>
+            </button>
+            <button
+              onClick={() => setShowMine(true)}
+              aria-selected={mineOn}
+              className={`rounded-full px-3 py-1 text-[12.5px] transition ${
+                mineOn ? "bg-brand font-bold text-white" : "text-muted hover:bg-paper"
+              }`}
+            >
+              내 일정 <span className="opacity-70">{plan.mine.summary.stops}곳</span>
+            </button>
+            {mineOn && (
+              <span className="text-[11px] text-muted">
+                {layer.dropped.length ? `${layer.dropped.length}곳 빼고 ` : ""}
+                {layer.added.length ? `${layer.added.length}곳 더하고 ` : ""}
+                {layer.start ? `${layer.start} 출발` : ""}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* 날짜 띠 — 1박2일 이상이면 날마다 따로 짠다. 하루 여행이면 숨긴다 */}
         {(plan?.days?.length ?? 0) > 1 && (
           <div className="mb-2 flex flex-wrap gap-1">
@@ -346,6 +445,29 @@ export default function PlanBoard({
             {byZone ? "시간순" : "구역별"}
           </button>
         </div>
+
+        {mineOn && (
+          <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl bg-brand-soft px-3 py-2">
+            <span className="text-[12.5px] font-bold text-brand">내 출발</span>
+            <input
+              type="time"
+              defaultValue={layer.start ?? plan.itinerary?.start ?? "09:00"}
+              onBlur={(e) => e.target.value && saveLayer({ start: e.target.value })}
+              aria-label="내 출발 시각"
+              className="rounded border border-rule bg-card px-1 py-0.5 font-mono text-xs"
+            />
+            {layer.start && (
+              <button className="btn btn-ghost px-2 py-0.5 text-xs" disabled={busy}
+                onClick={() => void saveLayer({ start: null })}>
+                공동 시각으로
+              </button>
+            )}
+            <button className="btn btn-ghost px-2 py-0.5 text-xs" disabled={busy}
+              onClick={() => void saveLayer({ dropped: [], added: [], start: null })}>
+              내 수정 전부 지우기
+            </button>
+          </div>
+        )}
 
         <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
           <Fact k="일정" v={`${summary.stops}개`} />
@@ -429,6 +551,15 @@ export default function PlanBoard({
                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
                   <span className="chip" style={{ color: zc[r.zoneId] ?? "var(--muted)" }}>{r.zone}</span>
                   <span className="font-mono text-[12.5px] text-muted">머무는 시간 {r.stay}분</span>
+                  {/* 공동 일정은 그대로 두고 나만 빠진다. ✕(빼기)는 모두의 일정에서
+                      빼는 것이고 이건 내 하루에서만 빠지는 것이다 */}
+                  <button className="chip text-[11px]" disabled={busy}
+                    title={layer.added.includes(r.id)
+                      ? "내가 더한 곳 — 눌러서 내 일정에서 뺀다"
+                      : "나는 안 감 — 모두의 일정은 그대로"}
+                    onClick={() => (layer.added.includes(r.id) ? toggleAdd(r.id) : toggleDrop(r.id))}>
+                    {layer.added.includes(r.id) ? "나만 더함 ✓" : "난 안 감"}
+                  </button>
                 </div>
                 {r.problem && <p className="mt-1 text-xs font-bold text-brand">{r.problem}</p>}
                 {i === cursor && r.note && <p className="mt-2 text-xs text-ink-2">{r.note}</p>}
@@ -598,6 +729,28 @@ export default function PlanBoard({
           </div>
         )}
 
+        {/* 내가 뺀 곳 — 되돌릴 자리 */}
+        {mineOn && layer.dropped.length > 0 && (
+          <div className="mt-4 rounded-xl border border-dashed border-rule bg-card/40 p-3">
+            <p className="text-sm font-bold text-muted">내가 뺀 곳 {layer.dropped.length}</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {layer.dropped.map((id) => {
+                const name = plan.rows?.find((x) => x.id === id)?.name
+                  ?? candidates.find((c) => c.id === id)?.name ?? id;
+                return (
+                  <button key={id} className="chip text-[12px]" disabled={busy}
+                    title="다시 가기" onClick={() => toggleDrop(id)}>
+                    {name} ↩
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-muted">
+              모두의 일정에는 그대로 있습니다. 내 일정에서만 빠져 있습니다.
+            </p>
+          </div>
+        )}
+
         {candidates.length > 0 && (
           <div className="mt-5">
             <h3 className="text-sm font-bold">
@@ -607,15 +760,26 @@ export default function PlanBoard({
               {candidates
                 .filter((c) => !zone || c.zoneId === zone)
                 .map((c) => (
-                  <button key={c.id} className="chip" style={{ color: zc[c.zoneId] ?? "var(--muted)" }}
-                    disabled={busy} title={c.note}
-                    onClick={() => propose({ action: "add", id: c.id })}>
-                    + {c.name}
-                  </button>
+                  <span key={c.id} className="inline-flex items-center gap-0.5">
+                    <button className="chip" style={{ color: zc[c.zoneId] ?? "var(--muted)" }}
+                      disabled={busy} title={c.note ?? "모두의 일정에 넣기"}
+                      onClick={() => propose({ action: "add", id: c.id })}>
+                      + {c.name}
+                    </button>
+                    {/* 공동 일정은 안 건드리고 나만 간다. 보기만 하는 사람도 이건 된다 */}
+                    <button className="chip text-[11px]"
+                      disabled={busy}
+                      title={layer.added.includes(c.id) ? "내 일정에서 빼기" : "나만 가기 — 모두의 일정은 그대로"}
+                      onClick={() => toggleAdd(c.id)}>
+                      {layer.added.includes(c.id) ? "나만 ✓" : "나만"}
+                    </button>
+                  </span>
                 ))}
             </div>
             <p className="mt-2 text-xs text-muted">
-              누르면 가장 덜 돌아가는 자리에 넣고, 거리가 많이 늘면 먼저 물어봅니다.
+              <b>+ 이름</b>은 모두의 일정에 넣습니다 — 가장 덜 돌아가는 자리에 넣고, 거리가
+              많이 늘면 먼저 물어봅니다. <b>나만</b>은 공동 일정을 그대로 두고 내 일정에만
+              더합니다.
             </p>
           </div>
         )}
