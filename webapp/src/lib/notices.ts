@@ -135,9 +135,8 @@ export async function notices(userId: string): Promise<Notices> {
     if (!r.unread) continue;
     items.push({
       kind: "chat",
-      /* 일대일도 그 사람과 엮인 여행 화면에서 열린다 — 대화만 있는 화면을
-         따로 두지 않았다. 여행이 없는 일대일은 홈으로 */
-      href: r.tripId ? `/trips/${r.tripId}` : "/",
+      /* 그룹 방은 그 여행으로, 일대일은 대화 목록으로 보낸다 */
+      href: r.kind === "trip" && r.tripId ? `/trips/${r.tripId}` : "/chat",
       title: `${r.title} — 안 읽은 말 ${r.unread}`,
       body: r.lastBody.slice(0, 60),
       count: r.unread,

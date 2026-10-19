@@ -24,6 +24,7 @@ export default async function Home() {
           Family trip log
         </p>
         <div className="flex items-center gap-2">
+          {me && <Link href="/chat" className="btn">대화</Link>}
           {/* 눌러야 아는 것들을 한 자리에 — 들어온 신청·내 신청 결과·안 읽은 말 */}
           <NoticeBell />
           <UserMenu user={me} />
