@@ -8,6 +8,17 @@ import { currentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
+/* 탭 제목에 여행 이름을 얹는다 — 여러 탭을 열어 둬도 구분이 된다 */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const me = await currentUser();
+  const trip = store.canSee && !(await store.canSee(id, me)) ? null : await store.getTrip(id);
+  return {
+    title: trip?.title ?? "Trip",
+    robots: { index: false, follow: false },
+  };
+}
+
 export default async function TripPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const me = await currentUser();

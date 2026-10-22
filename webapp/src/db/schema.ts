@@ -19,6 +19,10 @@ export const users = sqliteTable("users", {
      UNIQUE 라 한 카카오 계정이 두 사람이 될 수 없다. */
   kakaoId: text("kakao_id").unique(),
   role: text("role").notNull().default("member"),      // admin | member
+  /* 가입 때 동의한 약관. {"terms": 시각, "privacy": 시각, "marketing": 시각|null}
+     언제 무엇에 동의했는지 남아야 나중에 "동의한 적 없다" 는 말에 답할 수 있다.
+     관리자가 만들어 준 계정·카카오 계정은 빈 객체다. */
+  consents: text("consents").notNull().default("{}"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -276,12 +280,40 @@ export const drafts = sqliteTable("drafts", {
   madeAt: text("made_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+/* 에이전트가 한 번 돌 때마다 한 줄 — 모델이 쓴 토큰의 장부.
+
+   돈이 새는 곳은 모델 호출뿐이다. Anthropic 은 입력·출력 토큰으로 청구하고,
+   내 Ollama 도 느리므로 시간이 곧 비용이다. usage 는 SDK 가 응답에 실어
+   주는데 저장하지 않으면 버려진다 — 관리 화면의 토큰 섹션이 여기서 나온다.
+
+   tripId·userId 는 참조를 걸지 않는다. 장부는 "지워진 여행의 기록" 도 남겨야
+   총계가 맞고, 애초에 쓰는 쪽에서 두 값을 모를 때가 있다(총괄의 분류 단계).
+   그래서 약한 문자열 칸으로 둔다. */
+export const agentRuns = sqliteTable("agent_runs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  agent: text("agent").notNull(),            // plan·designer·album·ledger·pass·chief·classify
+  tripId: text("trip_id"),
+  userId: text("user_id"),
+  tier: text("tier").notNull().default("quick"),
+  model: text("model").notNull().default(""),
+  provider: text("provider").notNull().default(""),
+  inputTokens: integer("input_tokens").notNull().default(0),
+  outputTokens: integer("output_tokens").notNull().default(0),
+  ms: integer("ms").notNull().default(0),    // 돌리는 데 걸린 시간
+  toolCalls: integer("tool_calls").notNull().default(0),
+  /* 작은 모델이 도구를 부른 척 지어낸 답을 버린 횟수 — 어느 모델이
+     못 믿을 답을 내는지 보는 지표다 */
+  fabricated: integer("fabricated", { mode: "boolean" }).notNull().default(false),
+}, (t) => [index("agent_runs_time").on(t.createdAt)]);
+
 /** 마이그레이션 도구 없이도 첫 실행에 테이블이 생기게 한다 */
 export const CREATE_SQL = [
   `CREATE TABLE IF NOT EXISTS users (
      id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
      password_hash TEXT NOT NULL, kakao_id TEXT UNIQUE,
      role TEXT NOT NULL DEFAULT 'member',
+     consents TEXT NOT NULL DEFAULT '{}',
      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
   `CREATE TABLE IF NOT EXISTS sessions (
      token_hash TEXT PRIMARY KEY,
@@ -381,6 +413,17 @@ export const CREATE_SQL = [
      trip_id TEXT PRIMARY KEY REFERENCES trips(id) ON DELETE CASCADE,
      items TEXT NOT NULL, tips TEXT NOT NULL DEFAULT '[]',
      rough INTEGER NOT NULL DEFAULT 0, made_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+  `CREATE TABLE IF NOT EXISTS agent_runs (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     agent TEXT NOT NULL, trip_id TEXT, user_id TEXT,
+     tier TEXT NOT NULL DEFAULT 'quick',
+     model TEXT NOT NULL DEFAULT '', provider TEXT NOT NULL DEFAULT '',
+     input_tokens INTEGER NOT NULL DEFAULT 0,
+     output_tokens INTEGER NOT NULL DEFAULT 0,
+     ms INTEGER NOT NULL DEFAULT 0, tool_calls INTEGER NOT NULL DEFAULT 0,
+     fabricated INTEGER NOT NULL DEFAULT 0)`,
+  `CREATE INDEX IF NOT EXISTS agent_runs_time ON agent_runs(created_at)`,
   /* 한 번만 돌아야 하는 손질을 기억하는 곳. 마이그레이션 도구가 없으니
      PATCH_SQL 이 매번 도는데, "기존 사진을 공개로" 같은 손질은 두 번 돌면
      나중에 올린 "나만 보기" 까지 공개로 뒤집는다 */
@@ -441,4 +484,7 @@ export const PATCH_SQL = [
   `INSERT OR IGNORE INTO itinerary_days (trip_id, date, items, start, busy, cursor, updated_at)
      SELECT i.trip_id, t.date, i.items, i.start, i.busy, i.cursor, i.updated_at
      FROM itineraries i JOIN trips t ON t.id = i.trip_id`,
+  /* 가입 약관 동의 기록. 쓰던 계정은 비어 둔다 — 동의 화면을 본 적이 없으니
+     지어내서 채우면 안 된다 */
+  `ALTER TABLE users ADD COLUMN consents TEXT NOT NULL DEFAULT '{}'`,
 ];

@@ -1,9 +1,17 @@
 import type { Metadata } from "next";
+import BottomNav from "@/components/BottomNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "가족 여행 기록",
-  description: "일정 · 앨범 · 가계부를 담당 에이전트가 맡는 여행 기록 앱",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://cbg-trip.vercel.app"),
+  applicationName: "Family Trip Log",
+  title: { default: "Family Trip Log", template: "%s · Family Trip Log" },
+  description: "일정·사진·가계부·여행일기를 냥이들이 챙겨 주는 우리 여행 기록.",
+  openGraph: {
+    siteName: "Family Trip Log",
+    type: "website",
+    locale: "ko_KR",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -18,7 +26,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Pen+Script&display=swap"
         />
       </head>
-      <body className="min-h-full antialiased">{children}</body>
+      <body className="min-h-full antialiased">
+        {children}
+        <BottomNav />
+      </body>
     </html>
   );
 }

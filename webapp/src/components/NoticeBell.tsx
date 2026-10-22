@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
-/* 머리글의 종. 눌러야 아는 것들을 한 자리에 모은다 —
+/* 하단 탭의 종. 누르면 앱처럼 바닥 시트가 올라와 알림 목록을 보여 준다 —
    들어온 신청 · 내 신청 결과 · 안 읽은 말.
+   볼 게 하나도 없으면 시트 대신 플랫폼 토스트(.sheet)를 잠깐 띄운다.
 
    30초마다 센다. 대화창(8초)보다 느리게 둔 까닭: 종은 "있다/없다" 만 알려
    주면 되고, 들어가면 그 화면이 제 속도로 갱신한다. 숨은 탭에서는 쉰다. */
@@ -18,10 +19,10 @@ interface Notice {
   at: string;
 }
 
-const MARK: Record<Notice["kind"], string> = {
-  join_request: "🚪",
-  join_result: "✅",
-  chat: "💬",
+const MARK: Record<Notice["kind"], { icon: string; cls: string }> = {
+  join_request: { icon: "ri-door-open-line", cls: "bg-brand-soft text-brand" },
+  join_result: { icon: "ri-checkbox-circle-line", cls: "bg-z-zoo/10 text-z-zoo" },
+  chat: { icon: "ri-chat-3-line", cls: "bg-z-global/10 text-z-global" },
 };
 
 const ago = (iso: string) => {
@@ -35,21 +36,24 @@ const ago = (iso: string) => {
   return `${Math.floor(h / 24)}일 전`;
 };
 
-export default function NoticeBell() {
+export default function NoticeBell({ nav = false }: { nav?: boolean }) {
   const [badge, setBadge] = useState(0);
   const [items, setItems] = useState<Notice[] | null>(null);
   const [open, setOpen] = useState(false);
-  const boxRef = useRef<HTMLDivElement>(null);
+  const [toast, setToast] = useState(false);
 
-  const load = useCallback(async () => {
+  /* 최신 목록을 돌려준다 — 시트를 열지 토스트를 띄울지 그 자리에서 정해야 해서 */
+  const load = useCallback(async (): Promise<Notice[]> => {
     try {
       const d = await api<{ items: Notice[]; badge: number }>("/api/notices");
       setItems(d.items);
       setBadge(d.badge);
+      return d.items;
     } catch {
-      /* 종이 안 떠도 앱은 돈다 — 조용히 넘긴다 */
+      /* 종이 안 떠도 앱은 돈다 — 마지막으로 아는 목록을 넘긴다 */
+      return items ?? [];
     }
-  }, []);
+  }, [items]);
 
   useEffect(() => {
     void load();
@@ -57,74 +61,107 @@ export default function NoticeBell() {
     return () => clearInterval(t);
   }, [load]);
 
-  /* 바깥을 누르면 닫는다 */
+  /* 토스트는 잠깐만 띄운다 */
   useEffect(() => {
-    if (!open) return;
-    const away = (e: MouseEvent) => {
-      if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", away);
-    return () => document.removeEventListener("mousedown", away);
-  }, [open]);
+    if (!toast) return;
+    const t = setTimeout(() => setToast(false), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
 
-  async function toggle() {
-    const next = !open;
-    setOpen(next);
-    if (next) {
-      await load();
-      /* 열었으면 "여기까지 봤다". 신청은 이걸로 안 사라진다 — 처리해야 사라진다 */
-      try {
-        await api("/api/notices/seen", { method: "POST" });
-        await load();
-      } catch { /* 넘긴다 */ }
+  async function tap() {
+    if (open) { setOpen(false); return; }
+    const list = await load();
+    if (list.length === 0) {
+      setToast(true);
+      return;
     }
+    setOpen(true);
+    /* 열었으면 "여기까지 봤다". 신청은 이걸로 안 사라진다 — 처리해야 사라진다 */
+    try {
+      await api("/api/notices/seen", { method: "POST" });
+      await load();
+    } catch { /* 넘긴다 */ }
   }
 
+  /* 하단 탭에 얹힐 때는 아이콘+뱃지, 머리글에 얹힐 때는 글자 단추 */
+  const trigger = nav
+    ? "relative flex flex-col items-center gap-0.5 px-4 py-1.5 text-muted"
+    : "btn";
+
   return (
-    <div ref={boxRef} className="relative">
+    <>
       <button
-        className="btn"
+        className={trigger}
         aria-label={badge ? `알림 ${badge}개` : "알림"}
         aria-expanded={open}
-        onClick={toggle}
+        onClick={tap}
       >
-        알림
-        {badge > 0 && (
-          <span className="ml-1 rounded-full bg-brand px-1.5 text-[11px] font-bold text-white">
-            {badge > 99 ? "99+" : badge}
-          </span>
+        {nav ? (
+          <>
+            <i className="ri-notification-3-line text-xl" aria-hidden="true" />
+            <span className="text-[10px] font-bold">알림</span>
+            {badge > 0 && (
+              <span className="absolute right-1.5 top-0 rounded-full bg-brand px-1 text-[10px] font-bold text-white">
+                {badge > 99 ? "99+" : badge}
+              </span>
+            )}
+          </>
+        ) : (
+          <>
+            알림
+            {badge > 0 && (
+              <span className="ml-1 rounded-full bg-brand px-1.5 text-[11px] font-bold text-white">
+                {badge > 99 ? "99+" : badge}
+              </span>
+            )}
+          </>
         )}
       </button>
 
+      {/* 알림 목록 — "새 여행" 과 같은 바닥 시트 */}
       {open && (
-        <div
-          role="menu"
-          className="absolute right-0 z-30 mt-1 max-h-[70vh] w-[min(22rem,80vw)] overflow-y-auto rounded-2xl border border-rule bg-card p-2 shadow-lg"
-        >
-          {!items ? (
-            <p className="px-2 py-3 text-sm text-muted">세는 중…</p>
-          ) : items.length === 0 ? (
-            <p className="px-2 py-3 text-sm text-muted">새로 볼 것이 없습니다.</p>
-          ) : (
-            <ul className="flex flex-col">
-              {items.map((n, i) => (
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="알림">
+          <button aria-label="닫기" onClick={() => setOpen(false)}
+            className="absolute inset-0 h-full w-full bg-ink/30" />
+          <div className="sheet-in absolute inset-x-0 bottom-0 mx-auto w-full max-w-md rounded-t-3xl border border-rule bg-card p-5 pb-8 shadow-2xl">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-rule" />
+            <h2 className="mb-1 text-lg font-bold">알림</h2>
+            <ul className="max-h-[60vh] divide-y divide-rule/70 overflow-y-auto">
+              {(items ?? []).map((n, i) => (
                 <li key={`${n.kind}-${n.href}-${i}`}>
-                  <a href={n.href} className="flex gap-2 rounded-xl px-2 py-2 hover:bg-paper">
-                    <span aria-hidden className="pt-0.5">{MARK[n.kind]}</span>
+                  <a href={n.href} onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 py-3 transition-colors">
+                    <span className={`grid h-9 w-9 shrink-0 place-content-center rounded-full text-lg ${MARK[n.kind].cls}`}>
+                      <i className={MARK[n.kind].icon} aria-hidden="true" />
+                    </span>
                     <span className="min-w-0 flex-1">
-                      <b className="block truncate text-[13px]">{n.title}</b>
+                      <b className="block truncate text-sm">{n.title}</b>
                       {n.body && (
-                        <span className="block truncate text-[12px] text-muted">{n.body}</span>
+                        <span className="block truncate text-xs text-muted">{n.body}</span>
                       )}
                       <span className="block text-[11px] text-muted">{ago(n.at)}</span>
                     </span>
+                    {n.count > 1 && (
+                      <span className="rounded-full bg-brand px-1.5 text-[11px] font-bold text-white">
+                        {n.count}
+                      </span>
+                    )}
+                    <i className="ri-arrow-right-s-line shrink-0 text-muted" aria-hidden="true" />
                   </a>
                 </li>
               ))}
             </ul>
-          )}
+          </div>
         </div>
       )}
-    </div>
+
+      {/* 볼 게 없을 때 — 플랫폼 토스트 */}
+      {toast && (
+        <div className="sheet flex items-center gap-2 text-sm" role="status">
+          <i className="ri-notification-3-line text-lg text-brand" aria-hidden="true" />
+          새로 볼 알림이 없습니다.
+        </div>
+      )}
+    </>
   );
 }

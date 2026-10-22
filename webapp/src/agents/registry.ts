@@ -12,7 +12,7 @@ import { planTools } from "./tools/plan";
 export const AGENTS: Record<string, AgentDef> = {
   plan: {
     id: "plan",
-    name: "일정",
+    name: "Planner",
     blurb: "실제 길 위에서 거리를 재고 순서를 짠다",
     prompt: PLAN,
     tier: "quick",
@@ -23,7 +23,7 @@ export const AGENTS: Record<string, AgentDef> = {
   },
   designer: {
     id: "designer",
-    name: "설계",
+    name: "Designer",
     blurb: "지도 없는 지역의 하루 시간표를 만든다",
     prompt: DESIGNER,
     tier: "default",
@@ -34,7 +34,7 @@ export const AGENTS: Record<string, AgentDef> = {
   },
   pass: {
     id: "pass",
-    name: "패스권",
+    name: "Pass",
     blurb: "종일권과 정기권을 같은 자로 비교해 준다",
     prompt: PASS,
     tier: "quick",
@@ -45,7 +45,7 @@ export const AGENTS: Record<string, AgentDef> = {
   },
   album: {
     id: "album",
-    name: "앨범",
+    name: "Album",
     blurb: "사진을 날짜·일정 블록으로 묶고 여행일기를 쓴다",
     prompt: ALBUM,
     tier: "quick",
@@ -56,7 +56,7 @@ export const AGENTS: Record<string, AgentDef> = {
   },
   ledger: {
     id: "ledger",
-    name: "회계",
+    name: "Ledger",
     blurb: "지출을 분류해 적고 1인당 금액을 센다",
     prompt: LEDGER,
     tier: "quick",

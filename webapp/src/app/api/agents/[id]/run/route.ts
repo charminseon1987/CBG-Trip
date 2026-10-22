@@ -32,7 +32,7 @@ export async function POST(
   const over = rateLimit(`agent:${g.user?.id ?? "anon"}`);
   if (over) return fail("too_many", over, 429);
 
-  const r = await delegate(id, { tripId: p.data.tripId }, p.data.task);
+  const r = await delegate(id, { tripId: p.data.tripId, userId: g.user?.id }, p.data.task);
   return ok({
     agent: r.agent, text: r.text, calls: r.calls,
     tier: r.tier, model: r.model, provider: r.provider, ms: r.ms, usage: r.usage,

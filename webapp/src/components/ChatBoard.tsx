@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Loader from "./Loader";
 import { api } from "@/lib/api";
 
 /* 대화창. 여행 그룹 방과 일대일 방이 같은 화면을 쓴다 — 주소만 다르다.
@@ -94,7 +95,7 @@ export default function ChatBoard({
     <div className="mx-auto flex h-full w-full max-w-3xl flex-col px-4 py-4">
       <div className="min-h-0 flex-1 overflow-y-auto pr-1">
         {!msgs ? (
-          <p className="text-sm text-muted">불러오는 중…</p>
+          <Loader className="mt-8" />
         ) : msgs.length === 0 ? (
           <p className="mt-6 text-sm text-muted">
             {room.kind === "trip"

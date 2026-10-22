@@ -1,66 +1,141 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { store } from "@/lib/store";
 import { currentUser } from "@/lib/auth";
 import { getRegion } from "@/lib/regions";
+import { visiblePhotos } from "@/lib/photos";
 import { agentList } from "@/agents/registry";
-import { isLocal, modelName, providerId } from "@/agents/provider";
 import CatFace from "@/components/CatFace";
-import UserMenu from "@/components/UserMenu";
 import NewTripForm from "@/components/NewTripForm";
 import TripSearch from "@/components/TripSearch";
-import NoticeBell from "@/components/NoticeBell";
 
 export const dynamic = "force-dynamic";
+
+/* 테마마다 마스킹테이프·테마 칩 색이 다르다 — 앨범에서 한눈에 갈라 보인다 */
+const THEME_COLOR: Record<string, string> = {
+  가족: "var(--z-euro)",
+  아이와: "var(--z-amer)",
+  커플: "var(--rose)",
+  친구: "var(--z-global)",
+  혼자: "var(--z-magic)",
+  액티비티: "var(--z-zoo)",
+  휴양: "var(--z-show)",
+};
+const themeColor = (t: string) => THEME_COLOR[t] ?? "var(--z-euro)";
+
+/* 사진이 아직 없는 앨범 표지에 놓는 그림 */
+const THEME_ICON: Record<string, string> = {
+  가족: "ri-group-line",
+  아이와: "ri-emotion-happy-line",
+  커플: "ri-heart-3-line",
+  친구: "ri-team-line",
+  혼자: "ri-user-3-line",
+  액티비티: "ri-run-line",
+  휴양: "ri-umbrella-line",
+};
+
+/* 앨범을 놓아 둔 것처럼 보이게 카드마다 살짝 다른 기울기 */
+const TILTS = ["-1.6deg", "1.1deg", "-0.8deg", "1.7deg", "-1.2deg", "0.9deg"];
+
+const span = (t: { date: string; end: string }) =>
+  t.end && t.end !== t.date ? `${t.date} ~ ${t.end}` : t.date;
 
 export default async function Home() {
   const me = await currentUser();
   const trips = await store.listTrips(me);
   const agents = agentList();
+  /* 앨범 표지 — 그 여행에서 나에게 보이는 첫 사진. 사진은 올린 사람의 것이니
+     보이는 범위가 다르면 표지도 다르다 */
+  const covers = await Promise.all(
+    trips.map((t) => visiblePhotos(t.id, me?.id ?? null).then((p) => p[0] ?? null)),
+  );
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-5 py-10">
-      <div className="flex items-start justify-between gap-3">
-        <p className="font-mono text-[12.5px] font-bold uppercase tracking-[0.18em] text-brand">
-          Family trip log
-        </p>
-        <div className="flex items-center gap-2">
-          {me && <Link href="/chat" className="btn">대화</Link>}
-          {/* 눌러야 아는 것들을 한 자리에 — 들어온 신청·내 신청 결과·안 읽은 말 */}
-          <NoticeBell />
-          <UserMenu user={me} />
+    <main className="mx-auto w-full max-w-5xl px-5 py-10 pb-24">
+      <div className="flex items-center gap-3.5">
+        <CatFace who="logo" size={52} ring="border-brand" />
+        <div>
+          <p className="font-mono text-[12.5px] font-bold uppercase tracking-[0.18em] text-brand">
+            Family trip log
+          </p>
+          <h1 className="mt-0.5 text-4xl font-extrabold tracking-tight">우리 여행 기록</h1>
         </div>
       </div>
-      <h1 className="mt-2 text-4xl font-extrabold tracking-tight">우리 여행 기록</h1>
       <p className="mt-3 max-w-2xl text-ink-2">
-        여행 하나를 열면 <b>일정 · 앨범 · 가계부</b> 세 탭이 나옵니다. 각 탭은 담당 에이전트가
-        맡고, 총괄 에이전트가 말로 받은 요청을 알맞은 쪽에 넘깁니다.
+        여행 하나를 열면 <b>일정 · 앨범 · 가계부</b> 세 탭이 나옵니다. 탭마다 담당 냥이가
+        챙기고, 말로 부탁하면 Chief가 알맞은 냥이에게 넘겨 줍니다.
       </p>
 
-      <section className="mt-8 grid gap-4 sm:grid-cols-2">
-        {trips.map((t) => {
+      <section className="mt-10 grid gap-x-5 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
+        {trips.map((t, i) => {
           const pack = getRegion(t.region);
+          const accent = themeColor(t.theme);
+          const cover = covers[i];
           return (
             <Link
               key={t.id}
               href={`/trips/${t.id}`}
-              className="rounded-2xl border border-rule bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="album-card group block"
+              style={{ "--tilt": TILTS[i % TILTS.length] } as CSSProperties}
             >
-              <p className="font-mono text-xs text-muted">
-                {t.date}
-                {t.end && t.end !== t.date ? ` ~ ${t.end}` : ""}
-              </p>
-              <h2 className="mt-1 text-xl font-bold">{t.title}</h2>
-              <p className="text-sm text-ink-2">{t.place}</p>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full bg-paper px-3 py-1 text-muted">{t.people}명</span>
-                <span className="rounded-full bg-paper px-3 py-1 text-muted">{t.theme}</span>
-                {pack ? (
-                  <span className="rounded-full bg-brand-soft px-3 py-1 font-bold text-brand">
-                    지도 {pack.mode === "drive" ? "· 차 이동" : "· 도보"} · {pack.pool.length}곳
-                  </span>
+              <figure className="polaroid">
+                <span
+                  className="tape"
+                  style={{
+                    top: "-0.7rem", left: "50%",
+                    transform: "translateX(-50%) rotate(-2deg)",
+                    "--tape": accent,
+                  } as CSSProperties}
+                />
+                {cover ? (
+                  <img src={cover.url} alt={cover.caption || `${t.title} 사진`} loading="lazy" />
                 ) : (
-                  <span className="rounded-full bg-paper px-3 py-1 text-muted">설계 에이전트</span>
+                  <div
+                    className="grid aspect-square w-full place-content-center"
+                    style={{
+                      background: `radial-gradient(circle at 30% 25%, color-mix(in srgb, ${accent} 30%, white), color-mix(in srgb, ${accent} 12%, white) 70%)`,
+                    }}
+                  >
+                    <i
+                      className={`${THEME_ICON[t.theme] ?? "ri-image-line"} text-6xl`}
+                      style={{ color: `color-mix(in srgb, ${accent} 75%, white)` }}
+                      aria-hidden="true"
+                    />
+                  </div>
                 )}
+                <figcaption className="truncate">{t.title}</figcaption>
+              </figure>
+              <div className="mt-2.5 px-1">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+                  <p className="flex items-center gap-1.5 text-sm text-ink-2">
+                    <i className="ri-map-pin-2-line text-muted" aria-hidden="true" />
+                    {t.place}
+                  </p>
+                  <p className="flex items-center gap-1 font-mono text-[11.5px] text-muted">
+                    <i className="ri-calendar-line" aria-hidden="true" />
+                    {span(t)}
+                  </p>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-card px-2.5 py-0.5 text-muted shadow-sm">
+                    <i className="ri-group-line" aria-hidden="true" />
+                    {t.people}명
+                  </span>
+                  <span
+                    className="rounded-full px-2.5 py-0.5 font-bold"
+                    style={{ background: `color-mix(in srgb, ${accent} 14%, white)`, color: accent }}
+                  >
+                    {t.theme}
+                  </span>
+                  {pack ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-0.5 font-bold text-brand">
+                      <i className="ri-map-2-line" aria-hidden="true" />
+                      {pack.mode === "drive" ? "차 이동" : "도보"} · {pack.pool.length}곳
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-card px-2.5 py-0.5 text-muted shadow-sm">냥이가 짠 일정</span>
+                  )}
+                </div>
               </div>
             </Link>
           );
@@ -73,33 +148,28 @@ export default async function Home() {
 
       <section className="mt-12">
         <h2 className="flex items-center gap-2 text-lg font-bold">
-          <CatFace who="chief" size={28} ring="border-brand" /> 에이전트
+          <CatFace who="chief" size={28} ring="border-brand" /> 냥이들
         </h2>
-        <p className="text-sm text-ink-2">
-          총괄이 분류해 넘기고, 담당은 자기 도구만 씁니다.{" "}
-          <span className="text-z-zoo">
-            {providerId() !== "ollama"
-              ? `Anthropic ${modelName("quick")}`
-              : isLocal()
-                ? `내 컴퓨터에서 실행 중 · Ollama ${modelName("quick")}`
-                /* 바깥 서버인데 "내 컴퓨터" 라고 하면 거짓말이 된다 */
-                : modelName("quick")}
-          </span>
-        </p>
-        <div className="mt-4 overflow-hidden rounded-2xl border border-rule bg-card">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {agents.map((a) => (
             <div
               key={a.id}
-              className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-rule px-5 py-3 first:border-t-0"
+              className="rounded-2xl border border-rule bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
-              <CatFace who={a.id} size={30} />
-              <span className="w-12 font-bold">{a.name}</span>
-              <span className="flex-1 text-sm text-ink-2">{a.blurb}</span>
-              {/* 난이도별로 다른 모델이 붙는다 — 어느 모델인지 눈으로 보이게 */}
-              <span className="chip" style={{ color: a.tier === "default" ? "var(--z-magic)" : "var(--z-global)" }}>
-                {a.tier === "default" ? "어려움" : "가벼움"} · {a.model}
-              </span>
-              <span className="font-mono text-xs text-muted">도구 {a.tools.length}개</span>
+              <div className="flex items-center gap-3">
+                <CatFace who={a.id} size={40} />
+                <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                  <p className="truncate font-bold">{a.name}</p>
+                  {/* 무거운 생각이 필요한 일만 비싼 쪽으로 보낸다 — 모델 이름은 숨기고 등급만 보여 준다 */}
+                  <span
+                    className="chip shrink-0 text-[11px]"
+                    style={{ color: a.tier === "default" ? "var(--z-magic)" : "var(--z-global)" }}
+                  >
+                    {a.tier === "default" ? "똑똑함" : "가벼움"}
+                  </span>
+                </div>
+              </div>
+              <p className="mt-2.5 text-[13px] leading-snug text-ink-2">{a.blurb}</p>
             </div>
           ))}
         </div>

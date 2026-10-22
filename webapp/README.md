@@ -5,10 +5,13 @@
 
 ```
 Next.js 15 (App Router) · React 19 · Tailwind v4 · TypeScript
-Vercel AI SDK v5 + Anthropic  ·  Zod
-저장소: 메모리 (DB 자리 — Store 인터페이스만 갈아 끼우면 됨)
+Vercel AI SDK v5 + Anthropic  ·  Zod  ·  shadcn/ui (달력·팝오버)
+저장소: libSQL/SQLite (로컬은 파일 하나, 배포는 Turso)
 지역 지도: 빌드 타임에 구운 JSON (런타임 네트워크 호출 없음)
 ```
+
+> 최근 화면 손질 — 앨범식 여행 카드 · 여행 찾기 카드 · 냥이 말투 ·
+> 알림 바닥 시트 · 비행기 로더 등은 [루트 README](../README.md)에 정리해 두었다.
 
 ## 실행
 
@@ -143,14 +146,10 @@ python scripts/build_region.py --key gyeongju
 
 ## 아직 안 한 것
 
-- **DB.** `src/lib/store.ts` 의 `Store` 인터페이스만 구현하면 된다. 메모리 구현이라
-  서버가 재시작하거나 서버리스 인스턴스가 바뀌면 날아간다. 데모·개발용이다.
-- **사진 업로드.** 지금은 URL/data URI 만 받는다. Vercel Blob 이나 S3 를 붙이고
-  `POST /api/trips/:id/photos` 에서 업로드 URL 을 내주면 된다.
-- **인증.** 지금은 누구나 모든 여행을 본다.
-- **설계 결과 저장.** `drafts` 가 메모리 Map 이다 (`src/agents/tools/misc.ts`). DB 를 붙일 때
-  `store` 로 옮긴다.
-- **레이트 리밋.** `/api/chief` 와 `/api/agents/:id/run` 은 호출마다 모델 비용이 든다.
+- **카카오 로그인 키를 Vercel 에 안 넣었다** — 넣으면 로그인 화면에 단추가 생긴다.
+- **알림이 앱 안에만 있다** — 메일·푸시로 나가지 않는다. 종을 봐야 안다.
+- **개인 레이어의 "나만 가는 곳"** 은 순서 끝에 붙는다. 어디에 끼울지 고르는 화면이 없다.
+- **배포본을 사람 눈으로 본 검증이 아직 없다** — 로컬 DB 로는 확인했다.
 
 ## 배포 (Vercel)
 

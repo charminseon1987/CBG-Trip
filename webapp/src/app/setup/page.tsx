@@ -4,6 +4,12 @@ import { userCount } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
+/* 첫 설정 화면 — 검색에 올리지 않는다 */
+export const metadata = {
+  title: "Setup",
+  robots: { index: false, follow: false },
+};
+
 /* 관리자는 설정 코드를 아는 사람만 만든다 — 공개 주소에서 선착순이 되지 않게.
    코드도 없고 개발 중도 아니면 아예 잠근다. 자세한 사정은 api/auth/setup/route.ts */
 const CODE = process.env.SETUP_CODE || "";

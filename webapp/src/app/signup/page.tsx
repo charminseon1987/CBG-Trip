@@ -5,6 +5,11 @@ import { kakaoReady } from "@/lib/kakao";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Sign up",
+  description: "Family Trip Log 계정을 만들고 우리 여행 기록을 시작합니다.",
+};
+
 export default async function SignupPage({
   searchParams,
 }: {

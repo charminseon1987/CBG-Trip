@@ -64,7 +64,7 @@ export default function ChiefDock({
             })),
           });
         } else if (ev.type === "handoff") {
-          push({ role: "sys", text: `총괄 → ${ev.name} 에이전트에게 맡김` });
+          push({ role: "sys", text: `Chief → ${ev.name}에게 부탁함` });
           lastAgent = String(ev.agent ?? "chief");
           const id = String(ev.agent ?? "");
           setFlow((f) => ({
