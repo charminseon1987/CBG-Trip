@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import ChatBoard from "./ChatBoard";
+import Loader from "./Loader";
 import { api } from "@/lib/api";
 
 /* 대화 목록. 여행별 그룹 방과 일대일 방이 한 자리에 모인다.
@@ -60,8 +61,9 @@ export default function ChatRooms() {
   }, [open, load]);
 
   if (open) {
+    /* 하단 탭이 아래를 덮으니 그 자리만큼 비운다 */
     return (
-      <div className="mx-auto flex h-[calc(100vh-3rem)] w-full max-w-3xl flex-col px-4 py-4">
+      <div className="mx-auto flex h-[calc(100vh-6rem)] w-full max-w-3xl flex-col px-4 pt-4">
         <div className="flex flex-none items-center gap-2">
           <button className="btn btn-ghost px-2 py-1 text-sm" onClick={() => setOpen(null)}>
             ← 대화 목록
@@ -85,11 +87,8 @@ export default function ChatRooms() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-5 py-8">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">대화</h1>
-        <Link href="/" className="btn">내 여행으로</Link>
-      </div>
+    <main className="mx-auto w-full max-w-3xl px-5 py-8 pb-24">
+      <h1 className="text-2xl font-bold">대화</h1>
       <p className="mt-1 text-sm text-ink-2">
         여행마다 그룹 대화가 하나씩 있습니다. 같이 가는 사람과 둘이서만 하는 대화도
         여기 모입니다.
@@ -100,7 +99,7 @@ export default function ChatRooms() {
       )}
 
       {!rooms ? (
-        <p className="mt-6 text-sm text-muted">불러오는 중…</p>
+        <Loader />
       ) : rooms.length === 0 ? (
         <p className="mt-6 text-sm text-muted">
           아직 대화할 방이 없습니다. 여행에 들어가면 그 여행의 그룹 대화가 생깁니다.

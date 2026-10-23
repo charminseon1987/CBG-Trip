@@ -42,3 +42,61 @@
 }
 .sheet-good { border-color: var(--z-zoo); }
 .sheet-bad { border-color: var(--rose); }
+
+/* 불러오는 중 — 비행기가 점선 항로를 날아 도착 핀으로 간다.
+   움직임을 줄이는 설정이면 비행기는 항로 중간에 가만히 선다. */
+.loader { position: relative; width: 120px; height: 46px; }
+.loader-route {
+  stroke: var(--brand); stroke-opacity: .4; stroke-width: 2;
+  stroke-linecap: round; stroke-dasharray: 0.1 8;
+}
+.loader-plane {
+  position: absolute; left: 0; top: 0;
+  font-size: 1.35rem; color: var(--brand); line-height: 1;
+  offset-path: path("M6 38 Q60 -16 114 38");
+  offset-rotate: auto -45deg;
+  offset-distance: 55%;
+}
+.loader-pin {
+  position: absolute; left: 106px; top: 21px;
+  font-size: 1rem; color: var(--brand); line-height: 1;
+}
+
+/* 여행 목록의 폴라로이드 — 손에 집듯이 똑바로 들고 살짝 띄운다 */
+.album-card .polaroid {
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.album-card:hover .polaroid {
+  transform: rotate(0deg) translateY(-4px);
+  box-shadow: 0 14px 28px -12px rgba(58, 44, 74, .5);
+}
+
+/* 화면 진입 — 페이지가 새로 붙을 때 살짝 떠오르며 들어온다 */
+@media (prefers-reduced-motion: no-preference) {
+  .page-in { animation: page-in .28s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes page-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* 바닥에서 올라오는 시트 — 하단 탭의 "+" 가 여는 새 여행 창 */
+  .sheet-in { animation: sheet-in .25s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes sheet-in {
+    from { transform: translateY(100%); }
+    to { transform: none; }
+  }
+
+  /* 항로 끝에 닿기 직전 핀이 콕 뛴다 */
+  .loader-plane { animation: loader-fly 1.9s cubic-bezier(.45,.1,.5,.9) infinite; }
+  @keyframes loader-fly {
+    0% { offset-distance: 0%; opacity: 0; }
+    12% { opacity: 1; }
+    84% { opacity: 1; }
+    96%, 100% { offset-distance: 100%; opacity: 0; }
+  }
+  .loader-pin { animation: loader-ping 1.9s ease-out infinite; }
+  @keyframes loader-ping {
+    0%, 58%, 100% { transform: scale(1); }
+    72% { transform: scale(1.3); }
+  }
+}

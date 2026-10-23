@@ -18,11 +18,14 @@ import { generateText, stepCountIs, streamText, type ModelMessage, type ToolSet 
    넉넉히 주되 무한정은 아니게. */
 const MAX_OUTPUT = Number(process.env.AGENT_MAX_TOKENS || 2000);
 import { hasModel, isLocal, modelFor, modelName, promptSuffix, providerId, stripThinking, type Tier } from "./provider";
+import { logAgentRun } from "@/lib/stats";
 
 export { modelFor, type Tier };
 
 export interface AgentContext {
   tripId: string;
+  /** 누가 부른 것인지 — 토큰 장부(agent_runs)에 남긴다. 모르면 비워 둔다 */
+  userId?: string;
 }
 
 export interface AgentDef<T extends ToolSet = ToolSet> {
@@ -212,6 +215,16 @@ export async function runAgent(
     console.warn(`[agent:${agent.id}] ${why}. 버립니다: ${clean.slice(0, 80)}`);
   }
 
+  /* 토큰 장부. totalUsage 는 도구를 부른 모든 걸음을 합친 값이고,
+     usage 는 마지막 걸음뿐이다 — 걸음이 여럿이면 totalUsage 가 진짜 비용이다 */
+  const u = r.totalUsage ?? r.usage;
+  await logAgentRun({
+    agent: agent.id, tripId: ctx.tripId, userId: ctx.userId,
+    tier: agent.tier, model: modelName(agent.tier), provider: providerId(),
+    inputTokens: u?.inputTokens, outputTokens: u?.outputTokens,
+    ms: Date.now() - t0, toolCalls: calls.length, fabricated,
+  });
+
   return {
     agent: agent.id,
     text: fabricated ? "" : clean,
@@ -221,7 +234,7 @@ export async function runAgent(
     model: modelName(agent.tier),
     provider: providerId(),
     ms: Date.now() - t0,
-    usage: { inputTokens: r.usage?.inputTokens, outputTokens: r.usage?.outputTokens },
+    usage: { inputTokens: u?.inputTokens, outputTokens: u?.outputTokens },
   };
 }
 

@@ -4,8 +4,10 @@ import { hasKey } from "@/agents/harness";
 import { AGENTS } from "@/agents/registry";
 import { fail, parse } from "@/lib/http";
 import { rateLimit } from "@/lib/auth";
+import { logAgentRun } from "@/lib/stats";
 import { getRegion } from "@/lib/regions";
 import { guardTrip } from "@/lib/guard";
+import { modelName, providerId } from "@/agents/provider";
 import type { RunResult } from "@/agents/harness";
 
 export const maxDuration = 60;
@@ -43,7 +45,11 @@ export async function POST(req: Request) {
       const send = (o: unknown) => controller.enqueue(enc.encode(JSON.stringify(o) + "\n"));
 
       try {
-        const route = hasKey() ? await classify(message, hasMap) : keywordRoute(message, hasMap);
+        /* 누가 불렀는지를 ctx 로 넘긴다 — 토큰 장부(agent_runs)에 남는다 */
+        const ctx = { tripId, userId: g.user?.id };
+        const route = hasKey()
+          ? await classify(message, hasMap, ctx)
+          : keywordRoute(message, hasMap);
         /* 이름을 함께 보낸다 — 화면이 명부를 또 적어 두면 여기와 엇갈린다 */
         send({
           type: "route",
@@ -55,7 +61,7 @@ export async function POST(req: Request) {
         const reports: RunResult[] = [];
         for (const id of route.agents) {
           send({ type: "handoff", agent: id, name: AGENTS[id]?.name ?? id });
-          const r = await delegate(id, { tripId }, message);
+          const r = await delegate(id, ctx, message);
           reports.push(r);
           send({
             type: "report", agent: id, text: r.text, calls: r.calls,
@@ -71,9 +77,20 @@ export async function POST(req: Request) {
         }
 
         const facts = await factsOf(tripId);
-        const out = speak({ tripId }, message, reports, facts);
+        const t0 = Date.now();
+        const out = speak(ctx, message, reports, facts);
         for await (const delta of out.textStream) send({ type: "text", delta });
         send({ type: "done" });
+
+        /* 총괄의 말도 모델 호출이다. 스트림이 끝나야 usage 를 알 수 있으니
+           여기서 기다려 장부에 적는다 — 담당 호출만 세면 총괄 몫이 빠진다 */
+        const u = await out.totalUsage.catch(() => undefined);
+        await logAgentRun({
+          agent: "chief", tripId, userId: g.user?.id,
+          tier: "quick", model: modelName("quick"), provider: providerId(),
+          inputTokens: u?.inputTokens, outputTokens: u?.outputTokens,
+          ms: Date.now() - t0, toolCalls: 0,
+        });
       } catch (e) {
         send({ type: "error", message: e instanceof Error ? e.message : String(e) });
       } finally {

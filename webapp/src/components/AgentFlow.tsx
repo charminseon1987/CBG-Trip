@@ -55,14 +55,14 @@ export default function AgentFlow({ flow }: { flow: Flow }) {
 
   return (
     <section
-      aria-label="에이전트가 일하는 흐름"
+      aria-label="냥이들이 일하는 흐름"
       className="border-b border-rule bg-paper px-3 py-2.5 text-[12.5px]"
     >
       {/* ── 총괄: 누구에게 왜 맡겼나 ── */}
       <div className="flex items-start gap-2">
         <CatFace who="chief" size={22} ring="border-brand" />
         <div className="min-w-0 flex-1">
-          <b className="text-ink">총괄</b>{" "}
+          <b className="text-ink">Chief</b>{" "}
           <span className="text-muted">
             {flow.phase === "routing"
               ? "누구에게 맡길지 고르는 중…"
@@ -126,8 +126,8 @@ export default function AgentFlow({ flow }: { flow: Flow }) {
             {flow.phase === "error"
               ? "중간에 멈췄습니다"
               : flow.phase === "speaking"
-                ? "총괄이 모아서 말하는 중…"
-                : "총괄이 모아서 말했습니다"}
+                ? "Chief 가 모아서 말하는 중…"
+                : "Chief 가 모아서 말했습니다"}
           </span>
         </div>
       )}

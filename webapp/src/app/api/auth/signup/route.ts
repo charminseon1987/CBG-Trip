@@ -35,6 +35,13 @@ const Body = z.object({
   name: z.string().min(1).max(40),
   password: z.string().min(1).max(200),
   code: z.string().max(200).default(""),
+  /* 가입할 때 받는 동의. 화면에서만 확인하면 표시를 꺼버리고 보낼 수 있다 —
+     필수 동의는 서버도 한 번 더 확인한다 */
+  consent: z.object({
+    terms: z.boolean(),
+    privacy: z.boolean(),
+    marketing: z.boolean().default(false),
+  }),
 });
 
 /** GET — 가입을 받는가, 코드를 받아야 하는가. 화면이 모양을 정하는 데 쓴다 */
@@ -61,6 +68,10 @@ export async function POST(req: Request) {
     return fail("bad_code", "가입 코드가 맞지 않습니다.", 403);
   }
 
+  if (!p.data.consent.terms || !p.data.consent.privacy) {
+    return fail("need_consent", "필수 약관에 동의해야 가입할 수 있습니다.", 422);
+  }
+
   const weak = checkPasswordStrength(p.data.password);
   if (weak) return fail("weak_password", weak, 422);
 
@@ -71,7 +82,11 @@ export async function POST(req: Request) {
     return fail("duplicate", "이미 쓰고 있는 메일 주소입니다. 로그인해 주세요.", 409);
   }
 
-  const user = await createUser(email, p.data.name, p.data.password, "member");
+  /* 언제 무엇에 동의했는지를 계정에 남긴다 */
+  const now = new Date().toISOString();
+  const user = await createUser(email, p.data.name, p.data.password, "member", {
+    terms: now, privacy: now, marketing: p.data.consent.marketing ? now : null,
+  });
 
   /* 만들고 바로 들여보낸다 — 초대 링크를 따라온 사람이 로그인 화면을
      한 번 더 만나면 거기서 그만둔다 */

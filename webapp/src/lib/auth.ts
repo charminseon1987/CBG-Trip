@@ -152,6 +152,7 @@ export async function findByEmail(email: string) {
 
 export async function createUser(
   email: string, name: string, password: string, role: Role = "member",
+  consents: Record<string, string | null> = {},
 ): Promise<User> {
   const db = await conn();
   const id = `u-${randomBytes(6).toString("hex")}`;
@@ -161,6 +162,7 @@ export async function createUser(
     name: name.trim(),
     passwordHash: await hashPassword(password),
     role,
+    consents: JSON.stringify(consents),
     createdAt: new Date().toISOString(),
   };
   await db.insert(schema.users).values(row);

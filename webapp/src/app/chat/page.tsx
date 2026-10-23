@@ -4,6 +4,12 @@ import { currentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
+/* 대화 내용은 사적인 것 — 검색에 올리지 않는다 */
+export const metadata = {
+  title: "Chats",
+  robots: { index: false, follow: false },
+};
+
 /* /chat — 내 대화가 모이는 자리.
 
    미들웨어가 쿠키 없는 사람을 /login 으로 보내지만, 쿠키가 죽어 있을 수도

@@ -16,7 +16,8 @@ import {
   hasKey, runAgent, streamAgent,
   type AgentContext, type AgentDef, type RunResult,
 } from "./harness";
-import { modelFor } from "./provider";
+import { modelFor, modelName, providerId } from "./provider";
+import { logAgentRun } from "@/lib/stats";
 import { sharedPhotos } from "@/lib/photos";
 import { store } from "@/lib/store";
 import { getRegion } from "@/lib/regions";
@@ -41,15 +42,18 @@ export function keywordRoute(q: string, hasMap: boolean): Route {
   }
   if (out.length) return { agents: out, why: "규칙으로 분류" };
   if (/안녕|하이|고마|반가|누구|뭐해|뭘할|할수있|도와|사용법|어떻게/.test(m)) {
-    return { agents: [], why: "총괄이 바로 답합니다" };
+    return { agents: [], why: "Chief 가 바로 답합니다" };
   }
   return { agents: [hasMap ? "plan" : "designer"], why: "규칙으로 분류" };
 }
 
-export async function classify(q: string, hasMap: boolean): Promise<Route> {
+export async function classify(
+  q: string, hasMap: boolean, ctx?: AgentContext,
+): Promise<Route> {
   if (!hasKey()) return keywordRoute(q, hasMap);
   try {
-    const { object } = await generateObject({
+    const t0 = Date.now();
+    const { object, usage } = await generateObject({
       model: modelFor("quick"),
       schema: Route,
       system:
@@ -59,6 +63,13 @@ export async function classify(q: string, hasMap: boolean): Promise<Route> {
           ? "이 여행은 지도 데이터가 있다 — 일정 관련은 plan 이다."
           : "이 여행은 지도 데이터가 없다 — 일정 관련은 designer 다."),
       prompt: q,
+    });
+    /* 분류도 모델 호출이다 — 담당 호출만 세면 실제 비용이 적게 잡힌다 */
+    await logAgentRun({
+      agent: "classify", tripId: ctx?.tripId, userId: ctx?.userId,
+      tier: "quick", model: modelName("quick"), provider: providerId(),
+      inputTokens: usage?.inputTokens, outputTokens: usage?.outputTokens,
+      ms: Date.now() - t0, toolCalls: 0,
     });
     return object.agents.length || object.why ? object : keywordRoute(q, hasMap);
   } catch {
@@ -100,7 +111,7 @@ export function speak(
   ctx: AgentContext, question: string, reports: RunResult[], facts: unknown,
 ) {
   const chief: AgentDef = {
-    id: "chief", name: "총괄", blurb: "", prompt: CHIEF, tier: "quick",
+    id: "chief", name: "Chief", blurb: "", prompt: CHIEF, tier: "quick",
     tools: () => ({}), maxSteps: 1, requiresTool: false,
   };
   const body =

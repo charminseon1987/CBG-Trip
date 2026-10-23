@@ -2,6 +2,12 @@ import InviteCard from "@/components/InviteCard";
 
 export const dynamic = "force-dynamic";
 
+/* 토큰 하나하나가 사적인 초대장 — 검색에 올리지 않는다 */
+export const metadata = {
+  title: "Invitation",
+  robots: { index: false, follow: false },
+};
+
 /* 초대 링크가 닿는 곳.
 
    로그인 안 한 사람은 미들웨어가 /login?next=/invite/<토큰> 으로 보내고,

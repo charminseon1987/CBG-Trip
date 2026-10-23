@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CatFace from "./CatFace";
+import Loader from "./Loader";
 import PlaceSheet from "./PlaceSheet";
 import ShowAlertDialog, { useShowAlert } from "./ShowAlert";
 import TripMap, { zoneColorMap } from "./TripMap";
@@ -216,7 +217,7 @@ export default function PlanBoard({
      예전에는 화면 전체가 안내문 한 줄로 바뀌어서, 이 여행에 무엇이 들어갈
      자리인지가 보이지 않았다. 세 칸을 그대로 두고 칸마다 빈 상태를 적는다. */
   if (error) return <EmptyFrame trip={trip} day={day} note={error} tone="bad" />;
-  if (!plan) return <EmptyFrame trip={trip} day={day} note="불러오는 중…" />;
+  if (!plan) return <EmptyFrame trip={trip} day={day} loading />;
   if (!plan.mapped || !region || !plan.rows || !plan.summary || !plan.itinerary) {
     return <EmptyFrame trip={trip} day={day} />;
   }
@@ -952,7 +953,7 @@ function DraftTable({ trip }: { trip: Trip }) {
   return (
     <div className="mt-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="font-bold">설계 에이전트가 짠 하루</h3>
+        <h3 className="font-bold">냥이가 짠 하루</h3>
         <button className="btn btn-ghost px-2 py-1 text-xs" disabled={busy} onClick={drop}>
           버리고 다시 짜기
         </button>
@@ -991,8 +992,8 @@ function DraftTable({ trip }: { trip: Trip }) {
 }
 
 function EmptyFrame({
-  trip, day, note, tone, mapped,
-}: { trip: Trip; day: ParkDay | null; note?: string; tone?: "bad"; mapped?: boolean }) {
+  trip, day, note, tone, mapped, loading,
+}: { trip: Trip; day: ParkDay | null; note?: string; tone?: "bad"; mapped?: boolean; loading?: boolean }) {
   const slots = [
     { k: "일정", v: "0개" },
     { k: "이동 거리", v: "— km" },
@@ -1038,11 +1039,15 @@ function EmptyFrame({
             <div className="mx-auto flex max-w-md items-center gap-4">
               <CatFace who="designer" size={72} ring="border-brand" />
               <div>
-                <p className={`text-sm ${tone === "bad" ? "font-bold text-rose" : "text-ink-2"}`}>
-                  {note ?? (mapped
-                    ? <><b>{trip.place || trip.title}</b> 일정이 아직 비어 있습니다. 아래 냥이 버튼을 눌러 &ldquo;일정 짜줘&rdquo;라고 하거나, 지도에서 갈 곳을 눌러 넣으세요.</>
-                    : <><b>{trip.place || trip.title}</b>는 아직 지도 데이터가 없습니다. 설계 에이전트가 하루 시간표를 짭니다 — 아래 냥이 버튼을 눌러 &ldquo;일정 짜줘&rdquo;라고 해 보세요.</>)}
-                </p>
+                {loading ? (
+                  <Loader note="일정을 불러오는 중…" className="py-2" />
+                ) : (
+                  <p className={`text-sm ${tone === "bad" ? "font-bold text-rose" : "text-ink-2"}`}>
+                    {note ?? (mapped
+                      ? <><b>{trip.place || trip.title}</b> 일정이 아직 비어 있습니다. 아래 냥이 버튼을 눌러 &ldquo;일정 짜줘&rdquo;라고 하거나, 지도에서 갈 곳을 눌러 넣으세요.</>
+                      : <><b>{trip.place || trip.title}</b>는 아직 지도 데이터가 없습니다. 냥이가 하루 시간표를 짜 줍니다 — 아래 냥이 버튼을 눌러 &ldquo;일정 짜줘&rdquo;라고 해 보세요.</>)}
+                  </p>
+                )}
                 <p className="mt-2 text-[12.5px] text-muted">지도가 들어올 자리입니다.</p>
               </div>
             </div>

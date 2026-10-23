@@ -54,73 +54,112 @@ export default function AdminUsers({ initial, meId }: { initial: U[]; meId: stri
   };
 
   return (
-    <section className="mt-8">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-bold">사용자</h2>
-        <button className="btn" onClick={() => setAdding((v) => !v)}>
-          {adding ? "닫기" : "+ 사람 추가"}
+    <section className="mt-6 rounded-2xl border border-rule bg-card shadow-sm">
+      <div className="flex items-center gap-3 border-b border-rule px-5 py-4">
+        <span className="grid h-9 w-9 shrink-0 place-content-center rounded-xl text-base"
+              style={{ background: "color-mix(in srgb, var(--z-zoo) 12%, white)", color: "var(--z-zoo)" }}>
+          <i className="ri-group-line" />
+        </span>
+        <div>
+          <h2 className="font-bold">사용자 관리</h2>
+          <p className="text-xs text-muted">계정을 만들고 권한을 나눕니다.</p>
+        </div>
+        <button className="btn ml-auto" onClick={() => setAdding((v) => !v)}>
+          <i className={adding ? "ri-close-line" : "ri-user-add-line"} />
+          {adding ? "닫기" : "사용자 추가"}
         </button>
       </div>
 
+      <div className="px-5 pb-5 pt-4">
       {msg && (
-        <p className={`mt-2 rounded-lg px-3 py-2 text-sm font-bold ${
+        <p className={`mb-3 flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-sm font-bold ${
           msg.kind === "ok" ? "bg-paper text-z-zoo" : "bg-brand-soft text-brand"}`}>
+          <i className={msg.kind === "ok" ? "ri-checkbox-circle-line" : "ri-error-warning-line"} />
           {msg.text}
         </p>
       )}
 
       {adding && (
-        <form onSubmit={add} className="mt-3 grid gap-2 rounded-xl border border-rule bg-card p-4 sm:grid-cols-2">
-          <input name="name" placeholder="이름" required maxLength={40}
-            className="rounded-lg border border-rule bg-paper px-3 py-2" />
-          <input name="email" type="email" placeholder="메일 주소" required
-            className="rounded-lg border border-rule bg-paper px-3 py-2" />
-          <input name="password" type="password" placeholder="비밀번호 (10자 이상)" required minLength={10}
-            autoComplete="new-password" className="rounded-lg border border-rule bg-paper px-3 py-2" />
-          <select name="role" className="rounded-lg border border-rule bg-paper px-3 py-2">
-            <option value="member">일반</option>
-            <option value="admin">관리자</option>
-          </select>
-          <button disabled={busy} className="btn btn-primary sm:col-span-2">만들기</button>
+        <form onSubmit={add} className="mb-4 grid gap-3 rounded-2xl border border-rule bg-paper/60 p-4 sm:grid-cols-2">
+          <label className="grid gap-1 text-xs font-bold text-muted">
+            이름
+            <input name="name" required maxLength={40}
+              className="rounded-lg border border-rule bg-card px-3 py-2 text-sm text-ink" />
+          </label>
+          <label className="grid gap-1 text-xs font-bold text-muted">
+            이메일
+            <input name="email" type="email" required
+              className="rounded-lg border border-rule bg-card px-3 py-2 text-sm text-ink" />
+          </label>
+          <label className="grid gap-1 text-xs font-bold text-muted">
+            비밀번호 (10자 이상)
+            <input name="password" type="password" required minLength={10}
+              autoComplete="new-password" className="rounded-lg border border-rule bg-card px-3 py-2 text-sm text-ink" />
+          </label>
+          <label className="grid gap-1 text-xs font-bold text-muted">
+            권한
+            <select name="role" className="rounded-lg border border-rule bg-card px-3 py-2 text-sm text-ink">
+              <option value="member">일반 사용자</option>
+              <option value="admin">관리자</option>
+            </select>
+          </label>
+          <button disabled={busy} className="btn btn-primary sm:col-span-2">
+            <i className="ri-user-add-line" /> 계정 만들기
+          </button>
         </form>
       )}
 
-      <div className="mt-3 overflow-x-auto rounded-xl border border-rule bg-card">
-        <table className="w-full min-w-[32rem] text-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[36rem] text-sm">
           <thead>
             <tr className="border-b border-rule text-left text-xs text-muted">
-              <th className="p-3 font-normal">이름</th>
-              <th className="p-3 font-normal">메일</th>
-              <th className="p-3 font-normal">권한</th>
-              <th className="p-3" />
+              <th className="py-2.5 pr-3 font-normal">이름</th>
+              <th className="px-3 py-2.5 font-normal">이메일</th>
+              <th className="px-3 py-2.5 font-normal">가입일</th>
+              <th className="px-3 py-2.5 font-normal">권한</th>
+              <th className="py-2.5" />
             </tr>
           </thead>
           <tbody>
             {users.map((u) => (
-              <tr key={u.id} className="border-t border-rule">
-                <td className="p-3">
-                  <b>{u.name}</b>
-                  {u.id === meId && <span className="ml-1 text-xs text-brand">(나)</span>}
+              <tr key={u.id} className="border-t border-rule first:border-t-0">
+                <td className="py-3 pr-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="grid h-8 w-8 shrink-0 place-content-center rounded-full bg-brand-soft text-sm font-extrabold text-brand">
+                      {u.name.slice(0, 1)}
+                    </span>
+                    <b>{u.name}</b>
+                    {u.id === meId && <span className="chip" style={{ color: "var(--brand)" }}>나</span>}
+                  </div>
                 </td>
-                <td className="p-3 text-ink-2">{u.email}</td>
-                <td className="p-3">
+                <td className="px-3 py-3 text-ink-2">{u.email}</td>
+                <td className="px-3 py-3 font-mono text-xs text-muted">{u.createdAt.slice(0, 10)}</td>
+                <td className="px-3 py-3">
                   <select value={u.role} disabled={busy}
                     onChange={(e) => changeRole(u, e.target.value)}
-                    className="rounded border border-rule bg-paper px-2 py-1 text-xs font-bold">
-                    <option value="member">일반</option>
+                    className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${
+                      u.role === "admin"
+                        ? "border-brand bg-brand-soft text-brand"
+                        : "border-rule bg-card text-ink-2"}`}>
+                    <option value="member">일반 사용자</option>
                     <option value="admin">관리자</option>
                   </select>
                 </td>
-                <td className="p-3">
-                  <div className="flex flex-wrap justify-end gap-1">
-                    <button className="btn" disabled={busy} onClick={() => resetPw(u)}>비밀번호 재설정</button>
-                    <button className="btn" disabled={busy || u.id === meId} onClick={() => remove(u)}>삭제</button>
+                <td className="py-3">
+                  <div className="flex flex-wrap justify-end gap-1.5">
+                    <button className="btn" disabled={busy} onClick={() => resetPw(u)}>
+                      <i className="ri-key-2-line" /> 비밀번호 재설정
+                    </button>
+                    <button className="btn" disabled={busy || u.id === meId} onClick={() => remove(u)}>
+                      <i className="ri-delete-bin-line" /> 삭제
+                    </button>
                   </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
       </div>
     </section>
   );

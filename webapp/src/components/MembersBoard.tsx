@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import CatFace from "./CatFace";
 import ChatBoard from "./ChatBoard";
+import Loader from "./Loader";
 import { api } from "@/lib/api";
 import type { Trip } from "@/lib/types";
 
@@ -189,7 +190,7 @@ export default function MembersBoard({ trip }: { trip: Trip }) {
       )}
 
       {!d ? (
-        <p className="mt-6 text-sm text-muted">불러오는 중…</p>
+        <Loader />
       ) : (
         <>
           <ul className="mt-5 flex flex-col gap-2">

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "remixicon/fonts/remixicon.css";
 
 /* 색·글꼴 토큰 */
 @import "../styles/tokens.css";
@@ -8,6 +9,10 @@
 @import "../styles/components.css";
 /* 여행일기 — 손글씨 일기장 */
 @import "../styles/diary.css";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 /* 기준 글자 크기. rem 으로 쓰는 모든 간격·글자가 같이 커진다. */
 html { font-size: 17px; }
@@ -19,3 +24,37 @@ body {
   color: var(--color-ink);
   font-family: var(--font-display);
 }
+
+/* shadcn 의미 색을 우리 팔레트에 연결한다 — 캘린더 선택색이 브랜드 분홍이 된다.
+   --muted·--rule 같은 평문 변수로 이어야 @theme 이름과 순환 참조가 안 생긴다. */
+@theme inline {
+  --color-background: var(--color-paper);
+  --color-foreground: var(--color-ink);
+  --color-card: var(--card);
+  --color-card-foreground: var(--color-ink);
+  --color-popover: #ffffff;
+  --color-popover-foreground: var(--color-ink);
+  --color-primary: var(--color-brand);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--color-brand-soft);
+  --color-secondary-foreground: var(--color-ink-2);
+  /* --color-muted 는 tokens.css 의 #8A7C94 그대로 둔다 — 여기서는 "흐린 글자색" 의미.
+     shadcn 이 bg-muted 를 옅은 바탕으로 쓰는 자리는 컴포넌트에서 bg-brand-soft 로 바꿨다 */
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--color-brand-soft);
+  --color-accent-foreground: var(--color-brand-deep);
+  --color-destructive: var(--color-rose);
+  --color-destructive-foreground: #ffffff;
+  --color-border: var(--color-rule);
+  --color-input: var(--color-rule);
+  --color-ring: var(--color-brand);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root { --radius: 0.75rem; }

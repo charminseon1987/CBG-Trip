@@ -5,6 +5,11 @@ import { kakaoReady } from "@/lib/kakao";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Log in",
+  description: "일정·사진·가계부까지 냥이가 곁에서 챙겨 드리는 우리 여행 기록.",
+};
+
 export default async function LoginPage({
   searchParams,
 }: {
